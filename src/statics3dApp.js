@@ -134,9 +134,9 @@
         camera: {
           yaw: 35 * (Math.PI / 180),    // Horizontal orbit angle
           pitch: 22 * (Math.PI / 180),  // Elevation angle
-          distance: 72,                 // Calibrated distance to prevent clipping
+          distance: 64,                 // Calibrated distance for CSS pixel canvas
           target: { x: 0, y: 15, z: 0 },
-          fov: 620,                     // Expanded FOV
+          fov: 650,                     // Crisp FOV
           isDragging: false,
           lastMouseX: 0,
           lastMouseY: 0
@@ -148,7 +148,7 @@
           x: 0,
           y: 0,
           rotationDeg: 0,
-          radius: 125,
+          radius: 155,
           isSnapped: true
         },
 
@@ -1028,9 +1028,12 @@
       const canvas = this.dom.canvas;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
 
+      ctx.save();
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
 
       // Render Queue with Depth Sorting (Painter's Algorithm)
@@ -1160,6 +1163,8 @@
 
       // Orientation axes gizmo
       this.drawOrientationGizmo(ctx, w, h);
+
+      ctx.restore();
     }
 
     drawTabletopGrid(ctx, w, h) {
@@ -1261,56 +1266,56 @@
     }
 
     drawAllZoomScales(ctx, w, h, eq) {
-      const scaleW = 68;
-      const scaleH = 210;
-      const startX = w - (scaleW * 3 + 28);
-      const startY = 48;
+      const scaleW = 90;
+      const scaleH = 270;
+      const startX = w - (scaleW * 3 + 24);
+      const startY = 32;
 
       const pC1 = this.project3D(eq.anchors.a1, w, h);
       const pC2 = this.project3D(eq.anchors.a2, w, h);
       const pC3 = this.project3D(eq.anchors.a3, w, h);
 
       this.drawVerticalZoomScale(ctx, startX, startY, scaleW, scaleH, eq.tensions.t1, eq.readTensions.t1, 'T₁ (Stand 1)', '#0f7e9b', pC1);
-      this.drawVerticalZoomScale(ctx, startX + scaleW + 6, startY, scaleW, scaleH, eq.tensions.t2, eq.readTensions.t2, 'T₂ (Stand 2)', '#d67b19', pC2);
-      this.drawVerticalZoomScale(ctx, startX + (scaleW + 6) * 2, startY, scaleW, scaleH, eq.tensions.t3, eq.readTensions.t3, 'T₃ (Stand 3)', '#1b8a5a', pC3);
+      this.drawVerticalZoomScale(ctx, startX + scaleW + 8, startY, scaleW, scaleH, eq.tensions.t2, eq.readTensions.t2, 'T₂ (Stand 2)', '#d67b19', pC2);
+      this.drawVerticalZoomScale(ctx, startX + (scaleW + 8) * 2, startY, scaleW, scaleH, eq.tensions.t3, eq.readTensions.t3, 'T₃ (Stand 3)', '#1b8a5a', pC3);
     }
 
     drawVerticalZoomScale(ctx, x, y, width, height, tension, readTension, title, themeColor, anchorPoint) {
       ctx.save();
 
       // Card Container
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      drawRoundedRect(ctx, x, y, width, height, 6, true, true);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+      drawRoundedRect(ctx, x, y, width, height, 7, true, true);
       ctx.strokeStyle = themeColor;
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 1.8;
       ctx.stroke();
 
       // Header Banner
       ctx.fillStyle = themeColor;
-      drawRoundedRect(ctx, x + 3, y + 3, width - 6, 17, 3, true, false);
+      drawRoundedRect(ctx, x + 4, y + 4, width - 8, 22, 4, true, false);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 8.5px Inter, sans-serif';
+      ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(title, x + width / 2, y + 11);
+      ctx.fillText(title, x + width / 2, y + 15);
 
       // Subtitle
-      ctx.fillStyle = '#64748b';
-      ctx.font = '7px Inter, sans-serif';
-      ctx.fillText('0–10 N (0.2N)', x + width / 2, y + 27);
+      ctx.fillStyle = '#475569';
+      ctx.font = '9px Inter, sans-serif';
+      ctx.fillText('0–10 N (0.2N)', x + width / 2, y + 34);
 
       // Barrel Dimensions
-      const barrelX = x + 7;
-      const barrelY = y + 34;
-      const barrelW = 20;
-      const barrelH = height - 54;
+      const barrelX = x + 8;
+      const barrelY = y + 42;
+      const barrelW = 28;
+      const barrelH = height - 76;
       const usableH = barrelH - 8;
 
       // Acrylic Tube Background
       ctx.fillStyle = '#f8fafc';
-      drawRoundedRect(ctx, barrelX, barrelY, barrelW, barrelH, 2, true, true);
+      drawRoundedRect(ctx, barrelX, barrelY, barrelW, barrelH, 3, true, true);
       ctx.strokeStyle = themeColor;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.stroke();
 
       // Spring Extension
@@ -1319,29 +1324,35 @@
 
       // Helical Spring
       ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.moveTo(barrelX + barrelW / 2, barrelY + 2);
-      const coils = 10;
+      const coils = 12;
       for (let i = 0; i <= coils; i++) {
         const cy = barrelY + 2 + (i / coils) * ext;
-        const cx = barrelX + barrelW / 2 + (i % 2 === 0 ? -3 : 3);
+        const cx = barrelX + barrelW / 2 + (i % 2 === 0 ? -4 : 4);
         ctx.lineTo(cx, cy);
       }
       ctx.lineTo(barrelX + barrelW / 2, indY);
       ctx.stroke();
 
       // Hook Rod
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(barrelX + barrelW / 2, indY);
-      ctx.lineTo(barrelX + barrelW / 2, barrelY + barrelH + 4);
+      ctx.lineTo(barrelX + barrelW / 2, barrelY + barrelH + 6);
       ctx.stroke();
 
-      // Red Indicator Ring
+      // Red Indicator Ring & Pointer
       ctx.fillStyle = '#dc2626';
-      ctx.fillRect(barrelX + 1, indY - 1.5, barrelW - 2, 3);
+      ctx.fillRect(barrelX + 1, indY - 2, barrelW - 2, 4);
+      ctx.beginPath();
+      ctx.moveTo(barrelX + barrelW, indY);
+      ctx.lineTo(barrelX + barrelW + 4, indY - 3);
+      ctx.lineTo(barrelX + barrelW + 4, indY + 3);
+      ctx.closePath();
+      ctx.fill();
 
       // Graduated Newton Ticks (0 to 10 N every 0.2 N)
       ctx.textAlign = 'left';
@@ -1353,24 +1364,31 @@
         const isEven = Math.abs(val % 2) < 0.05;
 
         if (isWhole) {
-          ctx.strokeStyle = '#334155';
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1.2;
           ctx.beginPath();
           ctx.moveTo(barrelX + barrelW, tickY);
-          ctx.lineTo(barrelX + barrelW + 5, tickY);
+          ctx.lineTo(barrelX + barrelW + 8, tickY);
           ctx.stroke();
 
           if (isEven) {
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 7px Inter, sans-serif';
-            ctx.fillText(Math.round(val).toString(), barrelX + barrelW + 7, tickY);
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.fillText(Math.round(val).toString(), barrelX + barrelW + 11, tickY);
           }
+        } else if (Math.abs(val - (Math.floor(val) + 0.5)) < 0.05) {
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(barrelX + barrelW, tickY);
+          ctx.lineTo(barrelX + barrelW + 5.5, tickY);
+          ctx.stroke();
         } else {
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 0.6;
           ctx.beginPath();
           ctx.moveTo(barrelX + barrelW, tickY);
-          ctx.lineTo(barrelX + barrelW + 3, tickY);
+          ctx.lineTo(barrelX + barrelW + 3.5, tickY);
           ctx.stroke();
         }
       }
@@ -1379,21 +1397,21 @@
       const isMystery = this.state.activeScenario === 'mystery';
       if (!isMystery) {
         ctx.fillStyle = themeColor;
-        drawRoundedRect(ctx, x + 4, height - 16, width - 8, 14, 3, true, false);
+        drawRoundedRect(ctx, x + 5, height - 26, width - 10, 20, 4, true, false);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 8px Inter, sans-serif';
+        ctx.font = 'bold 11px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const txt = this.state.isRealLabMode ? `~${readTension.toFixed(1)} N` : `${tension.toFixed(2)} N`;
-        ctx.fillText(txt, x + width / 2, height - 9);
+        ctx.fillText(txt, x + width / 2, height - 16);
       } else {
         ctx.fillStyle = '#fef5ea';
-        drawRoundedRect(ctx, x + 4, height - 16, width - 8, 14, 3, true, false);
+        drawRoundedRect(ctx, x + 5, height - 26, width - 10, 20, 4, true, false);
         ctx.fillStyle = '#d67b19';
-        ctx.font = 'bold 7.5px Inter, sans-serif';
+        ctx.font = 'bold 9.5px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('Read Scale', x + width / 2, height - 9);
+        ctx.fillText('Read Scale', x + width / 2, height - 16);
       }
 
       ctx.restore();
@@ -1401,26 +1419,26 @@
 
     draw3DCoordinatesHUD(ctx, w, h, eq) {
       ctx.save();
-      const cardW = 340;
-      const cardH = 96;
+      const cardW = 420;
+      const cardH = 118;
       const x = 12;
       const y = h - cardH - 12;
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
-      drawRoundedRect(ctx, x, y, cardW, cardH, 6, true, true);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+      drawRoundedRect(ctx, x, y, cardW, cardH, 7, true, true);
       ctx.strokeStyle = '#0f7e9b';
-      ctx.lineWidth = 1.4;
+      ctx.lineWidth = 1.6;
       ctx.stroke();
 
       ctx.fillStyle = '#0f7e9b';
-      ctx.font = 'bold 9px Inter, sans-serif';
+      ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('AP PHYSICS C: 3D METRIC COORDINATES & ELEVATION ANGLES', x + 8, y + 14);
+      ctx.fillText('AP PHYSICS C: 3D COORDINATES & ELEVATION ANGLES', x + 10, y + 16);
 
       const knotStr = `Knot P: (${eq.knot.x.toFixed(1)}, ${eq.knot.y.toFixed(1)}, ${eq.knot.z.toFixed(1)}) cm`;
-      ctx.fillStyle = '#475569';
-      ctx.font = '8px Inter, sans-serif';
-      ctx.fillText(knotStr, x + 8, y + 27);
+      ctx.fillStyle = '#334155';
+      ctx.font = 'bold 10.5px Inter, sans-serif';
+      ctx.fillText(knotStr, x + 10, y + 33);
 
       const items = [
         { name: 'Cable 1', a: eq.anchors.a1, u: eq.unitVectors.u1, color: '#0f7e9b', ang: eq.angles.angles1 },
@@ -1429,7 +1447,7 @@
       ];
 
       items.forEach((item, idx) => {
-        const rowY = y + 43 + idx * 17;
+        const rowY = y + 52 + idx * 20;
         const dx = (item.a.x - eq.knot.x).toFixed(1);
         const dy = (item.a.y - eq.knot.y).toFixed(1);
         const dz = (item.a.z - eq.knot.z).toFixed(1);
@@ -1437,14 +1455,14 @@
         const elev = (Math.asin(Math.max(-1, Math.min(1, item.u.y))) * (180 / Math.PI)).toFixed(1);
 
         ctx.fillStyle = item.color;
-        ctx.font = 'bold 8px Inter, sans-serif';
-        ctx.fillText(`${item.name}:`, x + 8, rowY);
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.fillText(`${item.name}:`, x + 10, rowY);
 
         ctx.fillStyle = '#1e293b';
-        ctx.font = '8px monospace';
-        ctx.fillText(`Δr=<${dx},${dy},${dz}>cm`, x + 52, rowY);
-        ctx.fillText(`L=${L}cm`, x + 195, rowY);
-        ctx.fillText(`θ_elev=${elev}°`, x + 258, rowY);
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(`Δr=<${dx},${dy},${dz}>cm`, x + 62, rowY);
+        ctx.fillText(`L=${L}cm`, x + 240, rowY);
+        ctx.fillText(`θ_elev=${elev}°`, x + 318, rowY);
       });
 
       ctx.restore();
@@ -1453,41 +1471,41 @@
     drawRingStand(ctx, pBase, pClamp, id, color) {
       ctx.save();
 
-      // Cast Iron Base (Fixed crisp size: 28 x 14 px)
+      // Cast Iron Base (Crisp size: 34 x 16 px)
       ctx.fillStyle = '#334155';
       ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.ellipse(pBase.x, pBase.y, 28, 14, 0, 0, Math.PI * 2);
+      ctx.ellipse(pBase.x, pBase.y, 34, 16, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Steel Vertical Rod (Fixed width: 4.5 px)
+      // Steel Vertical Rod (width: 5 px)
       ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 4.5;
+      ctx.lineWidth = 5;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(pBase.x, pBase.y);
-      ctx.lineTo(pClamp.x, pClamp.y - 12);
+      ctx.lineTo(pClamp.x, pClamp.y - 14);
       ctx.stroke();
 
-      // Adjustable Clamp Collar (Fixed radius: 7 px)
+      // Adjustable Clamp Collar (radius: 8.5 px)
       ctx.fillStyle = color;
       ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.arc(pClamp.x, pClamp.y, 7, 0, Math.PI * 2);
+      ctx.arc(pClamp.x, pClamp.y, 8.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Stand Label Badge (Fixed crisp pill: 50 x 16 px)
+      // Stand Label Badge (Pill: 64 x 22 px)
       ctx.fillStyle = color;
-      drawRoundedRect(ctx, pClamp.x - 25, pClamp.y - 28, 50, 16, 4, true, false);
+      drawRoundedRect(ctx, pClamp.x - 32, pClamp.y - 34, 64, 22, 5, true, false);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9.5px Inter, sans-serif';
+      ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`Stand ${id}`, pClamp.x, pClamp.y - 20);
+      ctx.fillText(`Stand ${id}`, pClamp.x, pClamp.y - 23);
 
       ctx.restore();
     }
@@ -1518,23 +1536,23 @@
       ctx.translate(sx, sy);
       ctx.rotate(angle);
 
-      const barrelLen = 38;
-      const barrelW = 12;
+      const barrelLen = 46;
+      const barrelW = 15;
 
       // Acrylic Scale Body
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.6;
       ctx.strokeRect(-barrelLen / 2, -barrelW / 2, barrelLen, barrelW);
       ctx.fillRect(-barrelLen / 2, -barrelW / 2, barrelLen, barrelW);
 
       // Red Deflection Indicator
-      const maxExt = barrelLen - 12;
+      const maxExt = barrelLen - 14;
       const ext = Math.min(maxExt, (tension / 10) * maxExt);
-      const indX = -barrelLen / 2 + 6 + ext;
+      const indX = -barrelLen / 2 + 7 + ext;
 
       ctx.fillStyle = '#dc2626';
-      ctx.fillRect(indX - 1.5, -barrelW / 2 + 1, 3, barrelW - 2);
+      ctx.fillRect(indX - 2, -barrelW / 2 + 1, 4, barrelW - 2);
 
       // Force Badge
       const isMystery = this.state.activeScenario === 'mystery';
@@ -1542,18 +1560,18 @@
         ctx.rotate(-angle);
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1.3;
-        const bw = 54;
-        const bh = 20;
-        ctx.fillRect(-bw / 2, -28, bw, bh);
-        ctx.strokeRect(-bw / 2, -28, bw, bh);
+        ctx.lineWidth = 1.5;
+        const bw = 64;
+        const bh = 22;
+        ctx.fillRect(-bw / 2, -32, bw, bh);
+        ctx.strokeRect(-bw / 2, -32, bw, bh);
 
         ctx.fillStyle = color;
-        ctx.font = 'bold 9.5px Inter, sans-serif';
+        ctx.font = 'bold 11px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const txt = this.state.isRealLabMode ? `~${readTension.toFixed(1)} N` : `${tension.toFixed(2)} N`;
-        ctx.fillText(txt, 0, -18);
+        ctx.fillText(txt, 0, -21);
       }
 
       ctx.restore();
@@ -1818,30 +1836,31 @@
         // Dual Degree Numbers every 10°
         if (deg % 10 === 0) {
           // 1. Outer Scale: 0° to 180° Left-to-Right (Teal)
-          const outTextR = r - 16;
+          const outTextR = r - 18;
           const otx = outTextR * Math.cos(rad);
           const oty = -outTextR * Math.sin(rad);
           ctx.fillStyle = '#0a576b';
-          ctx.font = 'bold 7px Inter, sans-serif';
+          ctx.font = 'bold 9.5px Inter, sans-serif';
           ctx.fillText(deg.toString(), otx, oty);
 
           // 2. Inner Scale: 0° to 180° Right-to-Left (Amber)
-          const inTextR = r - 36;
+          const inTextR = r - 42;
           const itx = inTextR * Math.cos(rad);
           const ity = -inTextR * Math.sin(rad);
           const innerDeg = 180 - deg;
           ctx.fillStyle = '#d67b19';
-          ctx.font = 'bold 6.5px Inter, sans-serif';
+          ctx.font = 'bold 9px Inter, sans-serif';
           ctx.fillText(innerDeg.toString(), itx, ity);
         }
       }
 
       // Quick reference labels
       ctx.fillStyle = '#0a576b';
-      ctx.font = 'bold 6px Inter, sans-serif';
-      ctx.fillText('OUTER', 0, -r + 21);
+      ctx.font = 'bold 8.5px Inter, sans-serif';
+      ctx.fillText('OUTER', 0, -r + 26);
       ctx.fillStyle = '#d67b19';
-      ctx.fillText('INNER', 0, -r + 43);
+      ctx.font = 'bold 8px Inter, sans-serif';
+      ctx.fillText('INNER', 0, -r + 50);
 
       // Rotation Drag Handle (Orange circle on outer edge)
       const rotX = r + 18;
