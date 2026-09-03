@@ -98,4 +98,17 @@ describe('3D Statics Physics Engine Tests', () => {
     const isTenth = (val) => Math.abs(val * 10 - Math.round(val * 10)) < 1e-4;
     assert.ok(isTenth(res.readTensions.t1), 'Scale reading must be graduated to 0.1 N');
   });
+
+  it('Real Lab Mode: Knot physically sags downward with increasing mass (Hooke\'s Law)', () => {
+    const a1 = { x: 22, y: 30, z: 12 };
+    const a2 = { x: -22, y: 30, z: 12 };
+    const a3 = { x: 0, y: 30, z: -24 };
+    const nominalKnot = { x: 0, y: 12, z: 0 };
+
+    const lightRes = Statics3DPhysics.calculateEquilibrium(nominalKnot, a1, a2, a3, 0.200, 9.80, true);
+    const heavyRes = Statics3DPhysics.calculateEquilibrium(nominalKnot, a1, a2, a3, 0.900, 9.80, true);
+
+    assert.ok(heavyRes.knot.y < lightRes.knot.y, 'Knot height must decrease (sag downward) when mass increases');
+    assert.ok(heavyRes.elasticSagY > lightRes.elasticSagY, 'Elastic sag must be greater for heavier mass');
+  });
 });

@@ -94,25 +94,22 @@
             </div>
           </div>
 
-          <!-- Knot 3D Position Controls -->
+          <!-- Knot 3D Physical Equilibrium State: Fully Constrained (DOF = 0) -->
           <div class="control-box">
             <div class="control-header">
-              <label>Knot Position (<span class="math-expr">X, Z</span>):</label>
-              <div style="display: flex; align-items: center; gap: 0.35rem;">
-                <span style="font-size: 0.74rem; color: var(--muted);">Y: <strong id="valKnotY">12.0 cm</strong></span>
-                <button type="button" class="preset-chip" id="btnCenterKnot" style="padding: 0.1rem 0.45rem; font-size: 0.68rem;" title="Center knot at (0, 12, 0)">
-                  🎯 Center
-                </button>
-              </div>
+              <label>Knot Physical State:</label>
+              <span class="badge" style="background: #e0f2f7; color: var(--primary-teal); font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px;">
+                🔒 Constrained (DOF = 0)
+              </span>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.1rem;">
-              <div>
-                <div style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">X: <strong id="valKnotX" style="color: var(--primary-teal);">0.0 cm</strong></div>
-                <input type="range" class="range-slider" id="sliderKnotX" min="-12" max="12" step="0.5" value="0">
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+                <span style="color: var(--muted); font-weight: 600;">Position (<span class="math-expr">X, Y, Z</span>):</span>
+                <strong id="valKnotCoords" style="color: var(--ink); font-family: monospace; font-size: 0.82rem;">(0.0, 12.0, 0.0) cm</strong>
               </div>
-              <div>
-                <div style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">Z: <strong id="valKnotZ" style="color: var(--accent-amber);">0.0 cm</strong></div>
-                <input type="range" class="range-slider" id="sliderKnotZ" min="-12" max="12" step="0.5" value="0">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;">
+                <span style="color: var(--muted);">Equilibrium:</span>
+                <span id="valKnotSag" style="color: var(--primary-teal); font-weight: 700;">Ideal Inextensible Cables</span>
               </div>
             </div>
           </div>

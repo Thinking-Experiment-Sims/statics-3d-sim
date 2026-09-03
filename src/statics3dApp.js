@@ -43,12 +43,8 @@
         sliderMass: document.getElementById('sliderMass'),
         valMass: document.getElementById('valMass'),
         massControlItem: document.getElementById('massControlItem'),
-        sliderKnotX: document.getElementById('sliderKnotX'),
-        valKnotX: document.getElementById('valKnotX'),
-        sliderKnotZ: document.getElementById('sliderKnotZ'),
-        valKnotZ: document.getElementById('valKnotZ'),
-        valKnotY: document.getElementById('valKnotY'),
-        btnCenterKnot: document.getElementById('btnCenterKnot'),
+        valKnotCoords: document.getElementById('valKnotCoords'),
+        valKnotSag: document.getElementById('valKnotSag'),
 
         // Camera buttons
         camBtns: document.querySelectorAll('.cam-btn'),
@@ -261,6 +257,11 @@
         this.state.isRealLabMode
       );
 
+      // In real lab mode, the active knot position includes Hooke's Law elastic sag
+      if (this.state.protractor.isSnapped) {
+        this.snapProtractorToKnot();
+      }
+
       this.updateTelemetry();
     }
 
@@ -296,9 +297,19 @@
       if (this.dom.valMass) {
         this.dom.valMass.textContent = isMystery ? '??? g (Hidden)' : `${Math.round(this.state.massKg * 1000)} g`;
       }
-      if (this.dom.valKnotX) this.dom.valKnotX.textContent = `${this.state.knot.x.toFixed(1)} cm`;
-      if (this.dom.valKnotZ) this.dom.valKnotZ.textContent = `${this.state.knot.z.toFixed(1)} cm`;
-      if (this.dom.valKnotY) this.dom.valKnotY.textContent = `${this.state.knot.y.toFixed(1)} cm`;
+      if (this.dom.valKnotCoords) {
+        this.dom.valKnotCoords.textContent = `(${eq.knot.x.toFixed(1)}, ${eq.knot.y.toFixed(1)}, ${eq.knot.z.toFixed(1)}) cm`;
+      }
+      if (this.dom.valKnotSag) {
+        if (this.state.isRealLabMode && Math.abs(eq.elasticSagY) > 0.05) {
+          const sign = eq.elasticSagY > 0 ? '-' : '+';
+          this.dom.valKnotSag.innerHTML = `<span style="color: var(--accent-amber);">Hooke's Law Sag (${sign}${Math.abs(eq.elasticSagY).toFixed(1)} cm)</span>`;
+        } else if (this.state.isRealLabMode) {
+          this.dom.valKnotSag.innerHTML = `<span style="color: var(--accent-amber);">Elastic Scale Springs</span>`;
+        } else {
+          this.dom.valKnotSag.textContent = 'Ideal Inextensible Cables';
+        }
+      }
     }
 
     triggerEquilibriumSettling(initialAmp = 3) {
@@ -515,41 +526,6 @@
           this.render();
         });
       });
-
-      // Knot Position Sliders
-      if (this.dom.sliderKnotX) {
-        this.dom.sliderKnotX.addEventListener('input', (e) => {
-          this.state.knot.x = parseFloat(e.target.value);
-          this.updateEquilibrium();
-          if (this.state.protractor.isSnapped) this.snapProtractorToKnot();
-          this.render();
-        });
-        this.dom.sliderKnotX.addEventListener('change', () => this.triggerEquilibriumSettling(3));
-      }
-
-      if (this.dom.sliderKnotZ) {
-        this.dom.sliderKnotZ.addEventListener('input', (e) => {
-          this.state.knot.z = parseFloat(e.target.value);
-          this.updateEquilibrium();
-          if (this.state.protractor.isSnapped) this.snapProtractorToKnot();
-          this.render();
-        });
-        this.dom.sliderKnotZ.addEventListener('change', () => this.triggerEquilibriumSettling(3));
-      }
-
-      // Center Knot Button
-      if (this.dom.btnCenterKnot) {
-        this.dom.btnCenterKnot.addEventListener('click', () => {
-          this.state.knot.x = 0;
-          this.state.knot.z = 0;
-          if (this.dom.sliderKnotX) this.dom.sliderKnotX.value = 0;
-          if (this.dom.sliderKnotZ) this.dom.sliderKnotZ.value = 0;
-          this.updateEquilibrium();
-          if (this.state.protractor.isSnapped) this.snapProtractorToKnot();
-          this.triggerEquilibriumSettling(5);
-          this.render();
-        });
-      }
 
       // Camera Presets
       this.dom.camBtns.forEach(btn => {

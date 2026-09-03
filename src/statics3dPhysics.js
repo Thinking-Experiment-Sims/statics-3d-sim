@@ -68,7 +68,19 @@
    * @param {boolean} isRealLab - Whether to simulate internal spring stretch & uncertainty
    * @returns {Object} Full equilibrium geometry, unit vectors, tensions, components
    */
-  function calculateEquilibrium(knot, a1, a2, a3, massKg, g = 9.80, isRealLab = false) {
+  function calculateEquilibrium(nominalKnot, a1, a2, a3, massKg, g = 9.80, isRealLab = false) {
+    const knot = { ...nominalKnot };
+
+    // In Real Lab Mode: Hooke's Law elastic cable & spring stretch causes the knot to sag downward!
+    // Nominal reference load: 0.500 kg (y = nominalKnot.y = 12 cm)
+    // Effective vertical stiffness of the 3-cable tripod system: k_eff ~ 1.9 N/cm
+    let elasticSagY = 0;
+    if (isRealLab) {
+      const kEff = 1.9; // N/cm
+      elasticSagY = ((massKg - 0.500) * g) / kEff;
+      knot.y = Math.max(4.0, nominalKnot.y - elasticSagY);
+    }
+
     // 1. Cables displacement vectors (from knot pointing to anchors)
     const d1 = Vec3.sub(a1, knot);
     const d2 = Vec3.sub(a2, knot);
@@ -209,6 +221,7 @@
       },
       netForce: { sumFx, sumFy, sumFz },
       springDeltas: { springDelta1, springDelta2, springDelta3 },
+      elasticSagY,
       isStable,
       det: D
     };
