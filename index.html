@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Statics: 3-Cable Suspension Lab | The Thinking Experiment</title>
+  <meta name="description" content="Explore 3D static equilibrium with a suspended load supported by three non-coplanar cables. Orbit in 3D, measure tension vectors, and solve the 3x3 force resolution system.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Signature The Thinking Experiment Main Hero Card -->
+    <header class="hero" role="banner">
+      <div class="hero-top">
+        <div>
+          <a href="https://thinking-experiment-sims.github.io/interactive-physics/" class="brand-badge" title="The Thinking Experiment Hub">
+            ← The Thinking Experiment
+          </a>
+          <h1>3D Statics: 3-Cable Suspension Lab</h1>
+          <p class="hero-subtitle">
+            Model static equilibrium in three dimensions for a load supported by three non-coplanar cables. Orbit in 3D, inspect vector components, and verify &Sigma;F<sub>x</sub> = 0, &Sigma;F<sub>y</sub> = 0, &Sigma;F<sub>z</sub> = 0.
+          </p>
+        </div>
+        <div class="hero-meta-badges">
+          <!-- Simulation Mode Segmented Switcher -->
+          <div class="mode-segmented-control" id="modeSelectorCard" role="group" aria-label="Simulation Mode">
+            <button type="button" class="mode-segment-btn active" id="btnModeIdeal" title="Ideal Scenario: exact digital values & inextensible cables">
+              📘 Ideal Scenario
+            </button>
+            <button type="button" class="mode-segment-btn" id="btnModeReal" title="Real Lab Mode: internal scale spring stretch & reading uncertainty">
+              🔬 Real Lab Mode
+            </button>
+            <input type="checkbox" id="chkRealLabMode" style="display: none;">
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Scenario Navigation & Guidance Strip -->
+    <section class="scenario-strip" aria-label="Scenario Selection">
+      <nav class="scenario-nav" aria-label="3D Statics Modes">
+        <button class="scenario-tab active" data-scenario="lab">
+          ⚖️ 1. 3D Statics Lab &amp; Exploration
+        </button>
+        <button class="scenario-tab" data-scenario="mystery">
+          🧪 2. Mystery Mass Challenge (3D)
+        </button>
+      </nav>
+
+      <div class="scenario-meta-line">
+        <div class="scenario-caption">
+          <strong id="bannerTitle" style="color: var(--primary-teal-dark);">1. 3D Statics Lab &amp; Exploration:</strong>
+          <span id="bannerDesc">Freely adjust mass and position the knot in 3D. Orbit around the rig to inspect the 3 cables and solve the 3x3 force system in the table.</span>
+        </div>
+        <div class="mode-explanation-strip" id="modeExplanation">
+          <span id="modeDescText"><strong>Ideal Scenario:</strong> Inextensible cables and exact mathematical resolution (&Sigma;F<sub>x</sub> = 0, &Sigma;F<sub>y</sub> = 0, &Sigma;F<sub>z</sub> = 0).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Layout Grid -->
+    <main class="main-grid">
+
+      <!-- LEFT COLUMN: 3D Physical Rig & Viewport -->
+      <section class="panel" aria-label="3D Physical Rig Viewport">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <span>⚖️</span> 3D Suspension Rig
+          </h2>
+          <div style="font-size: 0.76rem; font-weight: 700; color: var(--muted);">
+            Table Base Radius: <strong style="color: var(--primary-teal-dark);">32 cm</strong> &bull; Clamp Height: <strong style="color: var(--primary-teal-dark);">30 cm</strong>
+          </div>
+        </div>
+
+        <!-- Apparatus Setup Controls Strip -->
+        <div class="apparatus-controls-strip">
+          <!-- Hanging Mass Control -->
+          <div class="control-box" id="massControlItem">
+            <div class="control-header">
+              <label for="sliderMass">Hanging Mass:</label>
+              <strong id="valMass" style="color: var(--primary-teal-dark);">500 g</strong>
+            </div>
+            <input type="range" class="range-slider" id="sliderMass" min="100" max="1000" step="25" value="500">
+            <div class="preset-bar">
+              <button class="preset-chip" data-mass="100">100g</button>
+              <button class="preset-chip" data-mass="250">250g</button>
+              <button class="preset-chip active" data-mass="500">500g</button>
+              <button class="preset-chip" data-mass="800">800g</button>
+              <button class="preset-chip" data-mass="1000">1000g</button>
+            </div>
+          </div>
+
+          <!-- Knot 3D Position Controls -->
+          <div class="control-box">
+            <div class="control-header">
+              <label>Knot Position (<span class="math-expr">X, Z</span>):</label>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="font-size: 0.74rem; color: var(--muted);">Y: <strong id="valKnotY">12.0 cm</strong></span>
+                <button type="button" class="preset-chip" id="btnCenterKnot" style="padding: 0.1rem 0.45rem; font-size: 0.68rem;" title="Center knot at (0, 12, 0)">
+                  🎯 Center
+                </button>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.1rem;">
+              <div>
+                <div style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">X: <strong id="valKnotX" style="color: var(--primary-teal);">0.0 cm</strong></div>
+                <input type="range" class="range-slider" id="sliderKnotX" min="-12" max="12" step="0.5" value="0">
+              </div>
+              <div>
+                <div style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">Z: <strong id="valKnotZ" style="color: var(--accent-amber);">0.0 cm</strong></div>
+                <input type="range" class="range-slider" id="sliderKnotZ" min="-12" max="12" step="0.5" value="0">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D Canvas Viewport -->
+        <div class="canvas-card">
+          <canvas id="apparatusCanvas"></canvas>
+
+          <!-- 3D Camera Angles Bar -->
+          <div class="camera-controls-bar" role="toolbar" aria-label="Camera Presets">
+            <button class="cam-btn active" data-cam="orbit" title="Perspective 3D Orbit View">🎥 3D Orbit</button>
+            <button class="cam-btn" data-cam="top" title="Top Down View (X-Z plane)">📐 Top (X-Z)</button>
+            <button class="cam-btn" data-cam="front" title="Front Elevation (X-Y plane)">📏 Front (X-Y)</button>
+            <button class="cam-btn" data-cam="side" title="Side Elevation (Z-Y plane)">🔍 Side (Z-Y)</button>
+          </div>
+
+          <div class="viewport-hint">
+            🖱️ Click &amp; drag to orbit in 3D &bull; Scroll to zoom
+          </div>
+        </div>
+
+        <!-- Toolbar Toggles -->
+        <div class="controls-bar">
+          <div class="inline-toggles-group">
+            <label class="toggle-label" title="Show horizontal tabletop grid">
+              <input type="checkbox" id="chkGrid" checked>
+              <span>Floor Grid</span>
+            </label>
+            <label class="toggle-label" title="Show XYZ origin axes">
+              <input type="checkbox" id="chkAxes" checked>
+              <span>Axes</span>
+            </label>
+            <label class="toggle-label" title="Show 3D tension force vectors">
+              <input type="checkbox" id="chkVectors" checked>
+              <span>Force Vectors</span>
+            </label>
+            <label class="toggle-label" title="Show digital sensor tension badges">
+              <input type="checkbox" id="chkBadges" checked>
+              <span>Badges</span>
+            </label>
+            <label class="toggle-label" title="Show vertical projection drop line">
+              <input type="checkbox" id="chkDrops" checked>
+              <span>Drop Line</span>
+            </label>
+          </div>
+          <button class="btn btn-ghost" id="btnResetCam" style="font-size: 0.76rem; padding: 0.2rem 0.5rem;">
+            ↺ Reset View
+          </button>
+        </div>
+
+        <!-- Telemetry Ribbon -->
+        <div class="telemetry-ribbon">
+          <div class="telemetry-card">
+            <div class="telemetry-label" style="color: var(--primary-teal);">Sensor 1 (T₁)</div>
+            <div class="telemetry-val" id="telemT1" style="color: var(--primary-teal);">-</div>
+          </div>
+          <div class="telemetry-card">
+            <div class="telemetry-label" style="color: var(--accent-amber);">Sensor 2 (T₂)</div>
+            <div class="telemetry-val" id="telemT2" style="color: var(--accent-amber);">-</div>
+          </div>
+          <div class="telemetry-card">
+            <div class="telemetry-label" style="color: #1b8a5a;">Sensor 3 (T₃)</div>
+            <div class="telemetry-val" id="telemT3" style="color: #1b8a5a;">-</div>
+          </div>
+          <div class="telemetry-card">
+            <div class="telemetry-label">Equilibrium</div>
+            <div class="telemetry-val" id="telemNetForce">⚖️ Balanced</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Analysis Workbench & 3D Component Table -->
+      <section class="panel" aria-label="3D Statics Analysis Workbench">
+        <!-- Mystery Mass Challenge Box -->
+        <div class="mystery-container" id="mysteryBox" style="display: none;">
+          <div class="mystery-header">
+            <span>🎯</span> Mystery Mass Challenge (3D)
+          </div>
+          <p style="font-size: 0.78rem; color: var(--accent-amber-dark); margin-bottom: 0.5rem;">
+            The hanging mass is an unknown load. Observe the three force sensor readings on the stands and calculate the hanging mass.
+          </p>
+          <div class="mystery-chips">
+            <button class="mystery-chip active" data-mystery="A">Mystery A</button>
+            <button class="mystery-chip" data-mystery="B">Mystery B</button>
+            <button class="mystery-chip" data-mystery="C">Mystery C</button>
+            <button class="mystery-chip" data-mystery="D">Mystery D</button>
+          </div>
+          <div class="mystery-form">
+            <input type="number" class="styled-input" id="studentMassInput" placeholder="Calculated mass in grams" step="0.1">
+            <button class="btn btn-accent" id="btnCheckMystery">Check Mass</button>
+          </div>
+          <div class="feedback-box" id="mysteryFeedback"></div>
+        </div>
+
+        <!-- Analysis Tabs Navigation -->
+        <div class="analysis-tabs-nav">
+          <button class="analysis-tab-btn active" data-tab="tab-table">📊 3D Component Table</button>
+          <button class="analysis-tab-btn" data-tab="tab-angles">📐 Direction Angles</button>
+          <button class="analysis-tab-btn" data-tab="tab-log">📝 Trial Data Log</button>
+        </div>
+
+        <!-- TAB 1: 3D Force Resolution Table -->
+        <div class="analysis-tab-pane active" id="tab-table">
+          <div class="math-card" style="margin-top: 0.4rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap;">
+              <strong style="color: var(--primary-teal-dark);">
+                📊 3D Force Component Resolution Table
+              </strong>
+              <span style="font-size: 0.72rem; color: var(--muted); font-weight: 600;">
+                &Sigma;F<sub>x</sub> = 0 &bull; &Sigma;F<sub>y</sub> = 0 &bull; &Sigma;F<sub>z</sub> = 0
+              </span>
+            </div>
+
+            <!-- STRICT: No vertical scrollbar! Full table always visible -->
+            <div class="force-table-wrapper">
+              <table class="unified-force-table">
+                <thead>
+                  <tr>
+                    <th style="color: var(--primary-teal); width: 23%;">Horizontal (<span class="math-expr">F<sub>x</sub></span>)</th>
+                    <th style="color: #1b8a5a; width: 23%;">Vertical (<span class="math-expr">F<sub>y</sub></span>)</th>
+                    <th style="color: var(--accent-amber); width: 23%;">Depth (<span class="math-expr">F<sub>z</sub></span>)</th>
+                    <th style="color: var(--ink); width: 31%;">Force Name &amp; Sensor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Row 1: Tension 1 -->
+                  <tr>
+                    <td>
+                      <div class="comp-formula"><code>+T₁·u₁x</code></div>
+                      <div class="comp-val teal" id="tblT1x">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><code>+T₁·u₁y</code></div>
+                      <div class="comp-val green" id="tblT1y">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><code>+T₁·u₁z</code></div>
+                      <div class="comp-val amber" id="tblT1z">-</div>
+                    </td>
+                    <td class="force-cell">
+                      <div class="force-title"><strong>Tension 1 (<em>T</em><sub>1</sub>)</strong></div>
+                      <span style="font-size: 0.70rem; color: var(--primary-teal); font-weight: 700;">Stand 1 (Front-Left)</span>
+                    </td>
+                  </tr>
+
+                  <!-- Row 2: Tension 2 -->
+                  <tr>
+                    <td>
+                      <div class="comp-formula"><code>+T₂·u₂x</code></div>
+                      <div class="comp-val teal" id="tblT2x">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><code>+T₂·u₂y</code></div>
+                      <div class="comp-val green" id="tblT2y">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><code>+T₂·u₂z</code></div>
+                      <div class="comp-val amber" id="tblT2z">-</div>
+                    </td>
+                    <td class="force-cell">
+                      <div class="force-title"><strong>Tension 2 (<em>T</em><sub>2</sub>)</strong></div>
+                      <span style="font-size: 0.70rem; color: var(--accent-amber); font-weight: 700;">Stand 2 (Front-Right)</span>
+                    </td>
+                  </tr>
+
+                  <!-- Row 3: Tension 3 -->
+                  <tr>
+                    <td>
+                      <div class="comp-formula"><code>+T₃·u₃x</code></div>
+                      <div class="comp-val teal" id="tblT3x">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><code>+T₃·u₃y</code></div>
+                      <div class="comp-val green" id="tblT3y">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><code>+T₃·u₃z</code></div>
+                      <div class="comp-val amber" id="tblT3z">-</div>
+                    </td>
+                    <td class="force-cell">
+                      <div class="force-title"><strong>Tension 3 (<em>T</em><sub>3</sub>)</strong></div>
+                      <span style="font-size: 0.70rem; color: #1b8a5a; font-weight: 700;">Stand 3 (Rear-Center)</span>
+                    </td>
+                  </tr>
+
+                  <!-- Row 4: Gravity -->
+                  <tr>
+                    <td><div class="comp-formula"><code>0 N</code></div></td>
+                    <td>
+                      <div class="comp-formula"><code>-F<sub>g</sub> = -m·g</code></div>
+                      <div class="comp-val red" id="tblFgy">-</div>
+                    </td>
+                    <td><div class="comp-formula"><code>0 N</code></div></td>
+                    <td class="force-cell">
+                      <div class="force-title"><strong>Gravity (<em>F</em><sub>g</sub>)</strong></div>
+                      <span style="font-size: 0.70rem; color: var(--muted);">Downward Weight</span>
+                    </td>
+                  </tr>
+
+                  <!-- Row 5: Net Force Sum -->
+                  <tr class="table-sum-row">
+                    <td>
+                      <div class="comp-formula"><strong>&Sigma;F<sub>x</sub></strong></div>
+                      <div class="comp-val" id="tblSumFx">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><strong>&Sigma;F<sub>y</sub></strong></div>
+                      <div class="comp-val" id="tblSumFy">-</div>
+                    </td>
+                    <td>
+                      <div class="comp-formula"><strong>&Sigma;F<sub>z</sub></strong></div>
+                      <div class="comp-val" id="tblSumFz">-</div>
+                    </td>
+                    <td class="force-cell">
+                      <div class="force-title"><strong>Net Force (&Sigma;<em>F</em>)</strong></div>
+                      <span style="font-size: 0.70rem; color: var(--success); font-weight: 700;">Static Equilibrium</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Single Compute Action Button -->
+            <div style="margin-top: 0.6rem;">
+              <button class="btn btn-primary" id="btnSolveWorkbench" style="width: 100%; font-size: 0.88rem; padding: 0.5rem;">
+                🧮 Compute 3D Components &amp; Verify Equilibrium
+              </button>
+              <div id="workbenchResults"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: 3D Direction Angles & Cosines -->
+        <div class="analysis-tab-pane" id="tab-angles">
+          <div class="math-card" style="margin-top: 0.4rem;">
+            <strong style="color: var(--primary-teal-dark);">3D Direction Angles &amp; Direction Cosines</strong>
+            <p style="font-size: 0.76rem; color: var(--muted); margin: 0.3rem 0 0.6rem;">
+              In 3D vector statics, direction angles (&alpha;, &beta;, &gamma;) measure the angle between the cable force vector and the three Cartesian axes (+X, +Y, +Z):
+              <code>u<sub>x</sub> = cos(&alpha;)</code>, <code>u<sub>y</sub> = cos(&beta;)</code>, <code>u<sub>z</sub> = cos(&gamma;)</code>.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+              <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; text-align: center;">
+                <div style="font-weight: 700; color: var(--primary-teal); font-size: 0.82rem;">Cable 1 (T₁)</div>
+                <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">&alpha; (X): <strong id="angA1_alpha">-</strong></div>
+                <div style="font-size: 0.72rem; color: var(--muted);">&beta; (Y): <strong id="angA1_beta">-</strong></div>
+                <div style="font-size: 0.72rem; color: var(--muted);">&gamma; (Z): <strong id="angA1_gamma">-</strong></div>
+              </div>
+              <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; text-align: center;">
+                <div style="font-weight: 700; color: var(--accent-amber); font-size: 0.82rem;">Cable 2 (T₂)</div>
+                <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">&alpha; (X): <strong id="angA2_alpha">-</strong></div>
+                <div style="font-size: 0.72rem; color: var(--muted);">&beta; (Y): <strong id="angA2_beta">-</strong></div>
+                <div style="font-size: 0.72rem; color: var(--muted);">&gamma; (Z): <strong id="angA2_gamma">-</strong></div>
+              </div>
+              <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; text-align: center;">
+                <div style="font-weight: 700; color: #1b8a5a; font-size: 0.82rem;">Cable 3 (T₃)</div>
+                <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">&alpha; (X): <strong id="angA3_alpha">-</strong></div>
+                <div style="font-size: 0.72rem; color: var(--muted);">&beta; (Y): <strong id="angA3_beta">-</strong></div>
+                <div style="font-size: 0.72rem; color: var(--muted);">&gamma; (Z): <strong id="angA3_gamma">-</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: Trial Data Log -->
+        <div class="analysis-tab-pane" id="tab-log">
+          <div class="math-card" style="margin-top: 0.4rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap;">
+              <strong style="color: var(--primary-teal-dark);">📝 3D Statics Trial Log</strong>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="btn btn-accent" id="btnRecordTrial" style="font-size: 0.74rem; padding: 0.2rem 0.5rem;">
+                  ➕ Record Trial
+                </button>
+                <button class="btn btn-ghost" id="btnCopyLog" style="font-size: 0.74rem; padding: 0.2rem 0.5rem;">
+                  📋 Copy Log
+                </button>
+                <button class="btn btn-ghost" id="btnClearLog" style="font-size: 0.74rem; padding: 0.2rem 0.5rem;">
+                  🗑️ Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="force-table-wrapper" style="max-height: 240px; overflow-y: auto;">
+              <table class="unified-force-table" style="font-size: 0.76rem;">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Mass</th>
+                    <th>Knot (X,Y,Z)</th>
+                    <th>T₁</th>
+                    <th>T₂</th>
+                    <th>T₃</th>
+                    <th>&Sigma;Fx</th>
+                    <th>&Sigma;Fy</th>
+                    <th>&Sigma;Fz</th>
+                  </tr>
+                </thead>
+                <tbody id="dataLogBody">
+                  <tr>
+                    <td colspan="9" style="text-align: center; color: var(--muted); padding: 0.8rem;">
+                      No recorded trials yet. Click <strong>➕ Record Trial</strong> to log 3D statics configurations.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="src/statics3dPhysics.js"></script>
+  <script src="src/statics3dApp.js"></script>
+</body>
+</html>
