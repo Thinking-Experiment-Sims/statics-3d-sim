@@ -164,6 +164,25 @@
           </button>
         </div>
 
+        <!-- Protractor Measurement Strip -->
+        <div class="protractor-controls-bar">
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            <button type="button" class="btn btn-ghost btn-xs" id="btnToggleProtractor">
+              📐 Protractor (Off)
+            </button>
+            <button type="button" class="btn btn-ghost btn-xs" id="btnSnapProtractor" title="Snap protractor origin directly to the knot vertex">
+              🎯 Snap to Knot
+            </button>
+          </div>
+          <div class="protractor-align-group">
+            <span style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">Align Baseline:</span>
+            <button type="button" class="preset-chip" id="btnAlignC1" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor with Cable 1">Cable 1</button>
+            <button type="button" class="preset-chip" id="btnAlignC2" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor with Cable 2">Cable 2</button>
+            <button type="button" class="preset-chip" id="btnAlignC3" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor with Cable 3">Cable 3</button>
+            <button type="button" class="preset-chip" id="btnAlignHoriz" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align horizontally (0 deg)">0° Horiz</button>
+          </div>
+        </div>
+
         <!-- Telemetry Ribbon -->
         <div class="telemetry-ribbon">
           <div class="telemetry-card">
@@ -255,7 +274,16 @@
                     </td>
                     <td class="force-cell">
                       <div class="force-title"><strong>Tension 1 (<em>T</em><sub>1</sub>)</strong></div>
-                      <span style="font-size: 0.70rem; color: var(--primary-teal); font-weight: 700;">Stand 1 (Front-Left)</span>
+                      <div class="inline-measure-group">
+                        <div class="measure-sub">
+                          <span>&theta;₁:</span>
+                          <input type="number" class="table-input" id="inTheta1" placeholder="Angle °" step="0.5">
+                        </div>
+                        <div class="measure-sub">
+                          <span>T₁:</span>
+                          <input type="number" class="table-input" id="inForce1" placeholder="Force N" step="0.1">
+                        </div>
+                      </div>
                     </td>
                   </tr>
 
@@ -275,7 +303,16 @@
                     </td>
                     <td class="force-cell">
                       <div class="force-title"><strong>Tension 2 (<em>T</em><sub>2</sub>)</strong></div>
-                      <span style="font-size: 0.70rem; color: var(--accent-amber); font-weight: 700;">Stand 2 (Front-Right)</span>
+                      <div class="inline-measure-group">
+                        <div class="measure-sub">
+                          <span>&theta;₂:</span>
+                          <input type="number" class="table-input" id="inTheta2" placeholder="Angle °" step="0.5">
+                        </div>
+                        <div class="measure-sub">
+                          <span>T₂:</span>
+                          <input type="number" class="table-input" id="inForce2" placeholder="Force N" step="0.1">
+                        </div>
+                      </div>
                     </td>
                   </tr>
 
@@ -295,7 +332,16 @@
                     </td>
                     <td class="force-cell">
                       <div class="force-title"><strong>Tension 3 (<em>T</em><sub>3</sub>)</strong></div>
-                      <span style="font-size: 0.70rem; color: #1b8a5a; font-weight: 700;">Stand 3 (Rear-Center)</span>
+                      <div class="inline-measure-group">
+                        <div class="measure-sub">
+                          <span>&theta;₃:</span>
+                          <input type="number" class="table-input" id="inTheta3" placeholder="Angle °" step="0.5">
+                        </div>
+                        <div class="measure-sub">
+                          <span>T₃:</span>
+                          <input type="number" class="table-input" id="inForce3" placeholder="Force N" step="0.1">
+                        </div>
+                      </div>
                     </td>
                   </tr>
 

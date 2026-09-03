@@ -1,10 +1,28 @@
 /**
  * 3D Statics Lab Application Controller
- * Handles 3D Canvas Projection, Orbit Controls, Event Binding, and Workbench UI
+ * Handles 3D Canvas Projection, Orbit Controls, Virtual Dual-Scale Protractor,
+ * Event Binding, and Workbench UI
  */
 
 (function () {
   'use strict';
+
+  // Helper: Draw rounded rectangle without ctx.roundRect (Design System standard)
+  function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+    ctx.lineTo(x + radius, y + height);
+    ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y, x + radius, y, radius);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
 
   class Statics3DApp {
     constructor() {
@@ -43,6 +61,14 @@
         chkDrops: document.getElementById('chkDrops'),
         btnResetCam: document.getElementById('btnResetCam'),
 
+        // Protractor Measurement Controls
+        btnToggleProtractor: document.getElementById('btnToggleProtractor'),
+        btnSnapProtractor: document.getElementById('btnSnapProtractor'),
+        btnAlignC1: document.getElementById('btnAlignC1'),
+        btnAlignC2: document.getElementById('btnAlignC2'),
+        btnAlignC3: document.getElementById('btnAlignC3'),
+        btnAlignHoriz: document.getElementById('btnAlignHoriz'),
+
         // Telemetry
         telemT1: document.getElementById('telemT1'),
         telemT2: document.getElementById('telemT2'),
@@ -55,13 +81,13 @@
         btnCheckMystery: document.getElementById('btnCheckMystery'),
         mysteryFeedback: document.getElementById('mysteryFeedback'),
 
-        // Table Elements
-        wbTheta1: document.getElementById('wbTheta1'),
-        wbTheta2: document.getElementById('wbTheta2'),
-        wbTheta3: document.getElementById('wbTheta3'),
-        wbForce1: document.getElementById('wbForce1'),
-        wbForce2: document.getElementById('wbForce2'),
-        wbForce3: document.getElementById('wbForce3'),
+        // Table Elements & Inputs
+        inTheta1: document.getElementById('inTheta1'),
+        inTheta2: document.getElementById('inTheta2'),
+        inTheta3: document.getElementById('inTheta3'),
+        inForce1: document.getElementById('inForce1'),
+        inForce2: document.getElementById('inForce2'),
+        inForce3: document.getElementById('inForce3'),
         btnSolveWorkbench: document.getElementById('btnSolveWorkbench'),
         workbenchResults: document.getElementById('workbenchResults'),
 
@@ -79,14 +105,11 @@
         massKg: 0.500,
         g: 9.80,
 
-        // 3D Anchor positions on the tabletop (in cm)
-        // Stand 1: Front-Left (Teal)
-        // Stand 2: Front-Right (Amber)
-        // Stand 3: Rear-Center (Emerald)
+        // 3D Anchor positions on tabletop (in cm)
         anchors: {
-          a1: { x: 22, y: 30, z: 12 },
-          a2: { x: -22, y: 30, z: 12 },
-          a3: { x: 0, y: 30, z: -24 }
+          a1: { x: 22, y: 30, z: 12 },   // Stand 1: Front-Left (Teal)
+          a2: { x: -22, y: 30, z: 12 },  // Stand 2: Front-Right (Amber)
+          a3: { x: 0, y: 30, z: -24 }    // Stand 3: Rear-Center (Emerald)
         },
 
         // Knot position in 3D (in cm)
@@ -105,16 +128,26 @@
         },
         currentMystery: 'A',
 
-        // 3D Camera Orbit Configuration
+        // 3D Camera Orbit Configuration (Calibrated to fill canvas space)
         camera: {
           yaw: 35 * (Math.PI / 180),    // Horizontal orbit angle
-          pitch: 28 * (Math.PI / 180),  // Elevation angle
-          distance: 92,                 // Distance from target
-          target: { x: 0, y: 15, z: 0 },
-          fov: 520,                     // Focal length for perspective divide
+          pitch: 26 * (Math.PI / 180),  // Elevation angle
+          distance: 60,                 // Closer distance to fill canvas
+          target: { x: 0, y: 13.5, z: 0 },
+          fov: 620,                     // Expanded FOV
           isDragging: false,
           lastMouseX: 0,
           lastMouseY: 0
+        },
+
+        // Virtual Dual-Scale Protractor Tool
+        protractor: {
+          visible: false,
+          x: 0,
+          y: 0,
+          rotationDeg: 0,
+          radius: 130,
+          isSnapped: true
         },
 
         // Toggles
@@ -128,6 +161,8 @@
         bobbingOffset: 0
       };
 
+      this.dragTarget = null; // 'protractor', 'protractor_rot', 'camera'
+      this.dragOffset = { x: 0, y: 0 };
       this.trials = [];
       this.settlingAnimationId = null;
 
@@ -150,6 +185,12 @@
       const dpr = window.devicePixelRatio || 1;
       this.dom.canvas.width = Math.round(rect.width * dpr);
       this.dom.canvas.height = Math.round(rect.height * dpr);
+
+      // Snap protractor if first load
+      if (this.state.protractor.isSnapped) {
+        this.snapProtractorToKnot();
+      }
+
       this.render();
     }
 
@@ -345,19 +386,76 @@
 
       if (preset === 'orbit') {
         this.state.camera.yaw = 35 * (Math.PI / 180);
-        this.state.camera.pitch = 28 * (Math.PI / 180);
+        this.state.camera.pitch = 26 * (Math.PI / 180);
+        this.state.camera.distance = 60;
       } else if (preset === 'top') {
         this.state.camera.yaw = 0;
-        this.state.camera.pitch = 85 * (Math.PI / 180);
+        this.state.camera.pitch = 88 * (Math.PI / 180);
+        this.state.camera.distance = 56;
       } else if (preset === 'front') {
         this.state.camera.yaw = 0;
         this.state.camera.pitch = 8 * (Math.PI / 180);
+        this.state.camera.distance = 58;
       } else if (preset === 'side') {
         this.state.camera.yaw = 90 * (Math.PI / 180);
         this.state.camera.pitch = 8 * (Math.PI / 180);
+        this.state.camera.distance = 58;
+      }
+
+      if (this.state.protractor.isSnapped) {
+        this.snapProtractorToKnot();
       }
 
       this.render();
+    }
+
+    snapProtractorToKnot() {
+      const canvas = this.dom.canvas;
+      if (!canvas || !this.equilibrium) return;
+      const w = canvas.width;
+      const h = canvas.height;
+      const pKnot = this.project3D(this.equilibrium.knot, w, h);
+      if (pKnot) {
+        this.state.protractor.x = pKnot.x;
+        this.state.protractor.y = pKnot.y;
+        this.state.protractor.isSnapped = true;
+      }
+    }
+
+    alignProtractorToCable(cableNum) {
+      this.snapProtractorToKnot();
+      const canvas = this.dom.canvas;
+      if (!canvas || !this.equilibrium) return;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const pKnot = this.project3D(this.equilibrium.knot, w, h);
+      let anchor = null;
+      if (cableNum === 1) anchor = this.equilibrium.anchors.a1;
+      else if (cableNum === 2) anchor = this.equilibrium.anchors.a2;
+      else if (cableNum === 3) anchor = this.equilibrium.anchors.a3;
+
+      if (pKnot && anchor) {
+        const pClamp = this.project3D(anchor, w, h);
+        if (pClamp) {
+          const dx = pClamp.x - pKnot.x;
+          const dy = pClamp.y - pKnot.y;
+          const rad = Math.atan2(dy, dx);
+          let deg = (rad * 180) / Math.PI;
+          if (deg < 0) deg += 360;
+          this.state.protractor.rotationDeg = Math.round(deg);
+        }
+      }
+      this.state.protractor.visible = true;
+      this.updateProtractorButtonUI();
+      this.render();
+    }
+
+    updateProtractorButtonUI() {
+      if (!this.dom.btnToggleProtractor) return;
+      const isVis = this.state.protractor.visible;
+      this.dom.btnToggleProtractor.textContent = isVis ? '📐 Protractor (On)' : '📐 Protractor (Off)';
+      this.dom.btnToggleProtractor.classList.toggle('btn-protractor-active', isVis);
     }
 
     bindEvents() {
@@ -419,6 +517,7 @@
         this.dom.sliderKnotX.addEventListener('input', (e) => {
           this.state.knot.x = parseFloat(e.target.value);
           this.updateEquilibrium();
+          if (this.state.protractor.isSnapped) this.snapProtractorToKnot();
           this.render();
         });
         this.dom.sliderKnotX.addEventListener('change', () => this.triggerEquilibriumSettling(3));
@@ -428,6 +527,7 @@
         this.dom.sliderKnotZ.addEventListener('input', (e) => {
           this.state.knot.z = parseFloat(e.target.value);
           this.updateEquilibrium();
+          if (this.state.protractor.isSnapped) this.snapProtractorToKnot();
           this.render();
         });
         this.dom.sliderKnotZ.addEventListener('change', () => this.triggerEquilibriumSettling(3));
@@ -441,6 +541,7 @@
           if (this.dom.sliderKnotX) this.dom.sliderKnotX.value = 0;
           if (this.dom.sliderKnotZ) this.dom.sliderKnotZ.value = 0;
           this.updateEquilibrium();
+          if (this.state.protractor.isSnapped) this.snapProtractorToKnot();
           this.triggerEquilibriumSettling(5);
           this.render();
         });
@@ -490,8 +591,48 @@
         });
       }
 
-      // Canvas Mouse / Touch 3D Orbit Interaction
-      this.bind3DOrbitControls();
+      // Protractor Control Buttons
+      if (this.dom.btnToggleProtractor) {
+        this.dom.btnToggleProtractor.addEventListener('click', () => {
+          this.state.protractor.visible = !this.state.protractor.visible;
+          if (this.state.protractor.visible) {
+            this.snapProtractorToKnot();
+          }
+          this.updateProtractorButtonUI();
+          this.render();
+        });
+      }
+
+      if (this.dom.btnSnapProtractor) {
+        this.dom.btnSnapProtractor.addEventListener('click', () => {
+          this.state.protractor.visible = true;
+          this.snapProtractorToKnot();
+          this.updateProtractorButtonUI();
+          this.render();
+        });
+      }
+
+      if (this.dom.btnAlignC1) {
+        this.dom.btnAlignC1.addEventListener('click', () => this.alignProtractorToCable(1));
+      }
+      if (this.dom.btnAlignC2) {
+        this.dom.btnAlignC2.addEventListener('click', () => this.alignProtractorToCable(2));
+      }
+      if (this.dom.btnAlignC3) {
+        this.dom.btnAlignC3.addEventListener('click', () => this.alignProtractorToCable(3));
+      }
+      if (this.dom.btnAlignHoriz) {
+        this.dom.btnAlignHoriz.addEventListener('click', () => {
+          this.snapProtractorToKnot();
+          this.state.protractor.rotationDeg = 0;
+          this.state.protractor.visible = true;
+          this.updateProtractorButtonUI();
+          this.render();
+        });
+      }
+
+      // Canvas Mouse / Touch Orbit & Protractor Interaction
+      this.bindCanvasInteraction();
 
       // Mystery Chips
       document.querySelectorAll('.mystery-chip').forEach(chip => {
@@ -541,67 +682,140 @@
       });
     }
 
-    bind3DOrbitControls() {
+    bindCanvasInteraction() {
       const canvas = this.dom.canvas;
       if (!canvas) return;
 
-      const onPointerDown = (clientX, clientY) => {
+      const getCanvasCoords = (clientX, clientY) => {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        return {
+          x: (clientX - rect.left) * (canvas.width / rect.width),
+          y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+      };
+
+      const handleDown = (clientX, clientY) => {
+        const { x, y } = getCanvasCoords(clientX, clientY);
+
+        // Check Protractor Hit Testing if visible
+        if (this.state.protractor.visible) {
+          const px = this.state.protractor.x;
+          const py = this.state.protractor.y;
+          const r = this.state.protractor.radius;
+          const rotRad = (this.state.protractor.rotationDeg * Math.PI) / 180;
+
+          // 1. Rotation handle: at (px + (r + 18)*cos(rot), py + (r + 18)*sin(rot))
+          const handleX = px + (r + 18) * Math.cos(rotRad);
+          const handleY = py + (r + 18) * Math.sin(rotRad);
+          if (Math.hypot(x - handleX, y - handleY) <= 18) {
+            this.dragTarget = 'protractor_rot';
+            return;
+          }
+
+          // 2. Protractor Body: inside semicircle radius r
+          const distToCenter = Math.hypot(x - px, y - py);
+          if (distToCenter <= r) {
+            this.dragTarget = 'protractor';
+            this.dragOffset.x = x - px;
+            this.dragOffset.y = y - py;
+            this.state.protractor.isSnapped = false;
+            return;
+          }
+        }
+
+        // Otherwise orbit camera
+        this.dragTarget = 'camera';
         this.state.camera.isDragging = true;
         this.state.camera.lastMouseX = clientX;
         this.state.camera.lastMouseY = clientY;
       };
 
-      const onPointerMove = (clientX, clientY) => {
-        if (!this.state.camera.isDragging) return;
+      const handleMove = (clientX, clientY) => {
+        if (!this.dragTarget) return;
 
-        const deltaX = clientX - this.state.camera.lastMouseX;
-        const deltaY = clientY - this.state.camera.lastMouseY;
+        const { x, y } = getCanvasCoords(clientX, clientY);
 
-        this.state.camera.lastMouseX = clientX;
-        this.state.camera.lastMouseY = clientY;
+        if (this.dragTarget === 'protractor_rot') {
+          const px = this.state.protractor.x;
+          const py = this.state.protractor.y;
+          const rad = Math.atan2(y - py, x - px);
+          let deg = (rad * 180) / Math.PI;
+          if (deg < 0) deg += 360;
+          this.state.protractor.rotationDeg = Math.round(deg);
+          this.render();
+        } else if (this.dragTarget === 'protractor') {
+          this.state.protractor.x = x - this.dragOffset.x;
+          this.state.protractor.y = y - this.dragOffset.y;
 
-        // Rotate orbit angles (sensitivity = 0.007 rad/px)
-        this.state.camera.yaw -= deltaX * 0.007;
-        this.state.camera.pitch += deltaY * 0.007;
+          // Auto-snap if dragged near knot
+          if (this.equilibrium) {
+            const pKnot = this.project3D(this.equilibrium.knot, canvas.width, canvas.height);
+            if (pKnot && Math.hypot(this.state.protractor.x - pKnot.x, this.state.protractor.y - pKnot.y) < 22) {
+              this.state.protractor.x = pKnot.x;
+              this.state.protractor.y = pKnot.y;
+              this.state.protractor.isSnapped = true;
+            }
+          }
+          this.render();
+        } else if (this.dragTarget === 'camera') {
+          const deltaX = clientX - this.state.camera.lastMouseX;
+          const deltaY = clientY - this.state.camera.lastMouseY;
 
-        // Clamp elevation to avoid gimbal flips
-        const minPitch = 4 * (Math.PI / 180);
-        const maxPitch = 86 * (Math.PI / 180);
-        this.state.camera.pitch = Math.max(minPitch, Math.min(maxPitch, this.state.camera.pitch));
+          this.state.camera.lastMouseX = clientX;
+          this.state.camera.lastMouseY = clientY;
 
-        this.dom.camBtns.forEach(btn => btn.classList.remove('active'));
-        this.render();
+          this.state.camera.yaw -= deltaX * 0.007;
+          this.state.camera.pitch += deltaY * 0.007;
+
+          // Clamp elevation to avoid flips
+          const minPitch = 4 * (Math.PI / 180);
+          const maxPitch = 86 * (Math.PI / 180);
+          this.state.camera.pitch = Math.max(minPitch, Math.min(maxPitch, this.state.camera.pitch));
+
+          this.dom.camBtns.forEach(btn => btn.classList.remove('active'));
+
+          if (this.state.protractor.isSnapped) {
+            this.snapProtractorToKnot();
+          }
+
+          this.render();
+        }
       };
 
-      const onPointerUp = () => {
+      const handleUp = () => {
+        this.dragTarget = null;
         this.state.camera.isDragging = false;
       };
 
-      // Mouse events
-      canvas.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
-      window.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
-      window.addEventListener('mouseup', onPointerUp);
+      // Mouse Listeners
+      canvas.addEventListener('mousedown', (e) => handleDown(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', handleUp);
 
-      // Touch events
+      // Touch Listeners
       canvas.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) {
-          onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+          handleDown(e.touches[0].clientX, e.touches[0].clientY);
         }
       }, { passive: true });
 
       window.addEventListener('touchmove', (e) => {
         if (e.touches.length === 1) {
-          onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+          handleMove(e.touches[0].clientX, e.touches[0].clientY);
         }
       }, { passive: true });
 
-      window.addEventListener('touchend', onPointerUp);
+      window.addEventListener('touchend', handleUp);
 
       // Wheel Zoom
       canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
         const zoomDelta = e.deltaY * 0.06;
-        this.state.camera.distance = Math.max(45, Math.min(150, this.state.camera.distance + zoomDelta));
+        this.state.camera.distance = Math.max(38, Math.min(120, this.state.camera.distance + zoomDelta));
+        if (this.state.protractor.isSnapped) {
+          this.snapProtractorToKnot();
+        }
         this.render();
       }, { passive: false });
     }
@@ -664,6 +878,15 @@
       setCell('tblT3z', eq.components.t3z);
 
       setCell('tblFgy', -eq.Fg);
+
+      // Populate input fields with measured/read values
+      if (this.dom.inTheta1) this.dom.inTheta1.value = eq.angles.angles1.betaDeg.toFixed(1);
+      if (this.dom.inTheta2) this.dom.inTheta2.value = eq.angles.angles2.betaDeg.toFixed(1);
+      if (this.dom.inTheta3) this.dom.inTheta3.value = eq.angles.angles3.betaDeg.toFixed(1);
+
+      if (this.dom.inForce1) this.dom.inForce1.value = eq.readTensions.t1.toFixed(1);
+      if (this.dom.inForce2) this.dom.inForce2.value = eq.readTensions.t2.toFixed(1);
+      if (this.dom.inForce3) this.dom.inForce3.value = eq.readTensions.t3.toFixed(1);
 
       // Net Force sums
       const sumElX = document.getElementById('tblSumFx');
@@ -890,7 +1113,7 @@
             });
           }
 
-          // Hanging Mass & Brass Knot
+          // Hanging Slotted Weight & Brass Knot
           renderQueue.push({
             depth: pKnot.depth,
             draw: () => this.drawKnotAndHangingMass(ctx, pKnot, eq.massKg)
@@ -904,7 +1127,12 @@
       // Execute all draw calls in order
       renderQueue.forEach(item => item.draw());
 
-      // Screen space HUD elements (always on top)
+      // Screen space HUD elements: Dual-Scale Protractor
+      if (this.state.protractor.visible) {
+        this.drawProtractor(ctx, this.state.protractor.x, this.state.protractor.y);
+      }
+
+      // Orientation axes gizmo
       this.drawOrientationGizmo(ctx, w, h);
     }
 
@@ -913,7 +1141,7 @@
       ctx.strokeStyle = 'rgba(200, 219, 227, 0.45)';
       ctx.lineWidth = 1;
 
-      const size = 32;
+      const size = 36;
       const step = 8;
 
       for (let x = -size; x <= size; x += step) {
@@ -928,8 +1156,8 @@
       }
 
       for (let z = -size; z <= size; z += step) {
-        const p1 = this.project3D({ x: -size, y: 0, z }, w, h);
-        const p2 = this.project3D({ x: size, y: 0, z }, w, h);
+        const p1 = this.project3D({ x: -size, y: 0, z: z }, w, h);
+        const p2 = this.project3D({ x: size, y: 0, z: z }, w, h);
         if (p1 && p2) {
           ctx.beginPath();
           ctx.moveTo(p1.x, p1.y);
@@ -945,7 +1173,7 @@
       const numSegs = 36;
       for (let i = 0; i <= numSegs; i++) {
         const angle = (i / numSegs) * Math.PI * 2;
-        const pt = this.project3D({ x: Math.cos(angle) * 32, y: 0, z: Math.sin(angle) * 32 }, w, h);
+        const pt = this.project3D({ x: Math.cos(angle) * 36, y: 0, z: Math.sin(angle) * 36 }, w, h);
         if (pt) {
           if (i === 0) ctx.moveTo(pt.x, pt.y);
           else ctx.lineTo(pt.x, pt.y);
@@ -959,7 +1187,7 @@
       const pOrigin = this.project3D({ x: 0, y: 0, z: 0 }, w, h);
       if (!pOrigin) return;
 
-      const len = 14;
+      const len = 16;
       const pX = this.project3D({ x: len, y: 0, z: 0 }, w, h);
       const pY = this.project3D({ x: 0, y: len, z: 0 }, w, h);
       const pZ = this.project3D({ x: 0, y: 0, z: len }, w, h);
@@ -975,7 +1203,7 @@
         ctx.lineTo(pX.x, pX.y);
         ctx.stroke();
         ctx.fillStyle = '#0f7e9b';
-        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.font = 'bold 10px Inter, sans-serif';
         ctx.fillText('+X', pX.x + 4, pX.y);
       }
 
@@ -987,7 +1215,7 @@
         ctx.lineTo(pY.x, pY.y);
         ctx.stroke();
         ctx.fillStyle = '#1b8a5a';
-        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.font = 'bold 10px Inter, sans-serif';
         ctx.fillText('+Y (Up)', pY.x, pY.y - 4);
       }
 
@@ -999,7 +1227,7 @@
         ctx.lineTo(pZ.x, pZ.y);
         ctx.stroke();
         ctx.fillStyle = '#d67b19';
-        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.font = 'bold 10px Inter, sans-serif';
         ctx.fillText('+Z', pZ.x + 4, pZ.y);
       }
 
@@ -1009,38 +1237,38 @@
     drawRingStand(ctx, pBase, pClamp, id, color) {
       ctx.save();
 
-      // Cast iron heavy base
+      // Heavy Cast Iron Base
       ctx.fillStyle = '#334155';
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.ellipse(pBase.x, pBase.y, 14 * pBase.scale, 7 * pBase.scale, 0, 0, Math.PI * 2);
+      ctx.ellipse(pBase.x, pBase.y, 16 * pBase.scale, 8 * pBase.scale, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Steel vertical rod
+      // Steel Vertical Rod
       ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 3.5 * pBase.scale;
+      ctx.lineWidth = 4 * pBase.scale;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(pBase.x, pBase.y);
-      ctx.lineTo(pClamp.x, pClamp.y - 12 * pClamp.scale);
+      ctx.lineTo(pClamp.x, pClamp.y - 14 * pClamp.scale);
       ctx.stroke();
 
-      // Clamp collar
+      // Adjustable Clamp Collar
       ctx.fillStyle = color;
       ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.arc(pClamp.x, pClamp.y, 5 * pClamp.scale, 0, Math.PI * 2);
+      ctx.arc(pClamp.x, pClamp.y, 6 * pClamp.scale, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Stand Label
       ctx.fillStyle = color;
-      ctx.font = `bold ${Math.max(9, Math.round(11 * pClamp.scale))}px Inter, sans-serif`;
+      ctx.font = `bold ${Math.max(10, Math.round(12 * pClamp.scale))}px Inter, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(`Stand ${id}`, pClamp.x, pClamp.y - 14 * pClamp.scale);
+      ctx.fillText(`Stand ${id}`, pClamp.x, pClamp.y - 16 * pClamp.scale);
 
       ctx.restore();
     }
@@ -1050,20 +1278,17 @@
 
       // Cable line
       ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
       ctx.moveTo(pKnot.x, pKnot.y);
       ctx.lineTo(pClamp.x, pClamp.y);
       ctx.stroke();
 
-      // Vector from clamp toward knot for scale placement
       const dx = pKnot.x - pClamp.x;
       const dy = pKnot.y - pClamp.y;
       const dist = Math.hypot(dx, dy);
-      if (dist < 20) { ctx.restore(); return; }
+      if (dist < 25) { ctx.restore(); return; }
 
-      const ux = dx / dist;
-      const uy = dy / dist;
       const angle = Math.atan2(dy, dx);
 
       // Spring Scale Barrel on cable
@@ -1074,13 +1299,13 @@
       ctx.translate(sx, sy);
       ctx.rotate(angle);
 
-      const barrelLen = 34;
-      const barrelW = 10;
+      const barrelLen = 38;
+      const barrelW = 12;
 
-      // Acrylic scale body
+      // Acrylic Scale Body
       ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.4;
+      ctx.lineWidth = 1.5;
       ctx.strokeRect(-barrelLen / 2, -barrelW / 2, barrelLen, barrelW);
       ctx.fillRect(-barrelLen / 2, -barrelW / 2, barrelLen, barrelW);
 
@@ -1098,18 +1323,18 @@
         ctx.rotate(-angle);
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1.2;
-        const bw = 50;
-        const bh = 18;
-        ctx.fillRect(-bw / 2, -26, bw, bh);
-        ctx.strokeRect(-bw / 2, -26, bw, bh);
+        ctx.lineWidth = 1.3;
+        const bw = 54;
+        const bh = 20;
+        ctx.fillRect(-bw / 2, -28, bw, bh);
+        ctx.strokeRect(-bw / 2, -28, bw, bh);
 
         ctx.fillStyle = color;
-        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.font = 'bold 9.5px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const txt = this.state.isRealLabMode ? `~${readTension.toFixed(1)} N` : `${tension.toFixed(2)} N`;
-        ctx.fillText(txt, 0, -17);
+        ctx.fillText(txt, 0, -18);
       }
 
       ctx.restore();
@@ -1121,46 +1346,92 @@
       // Brass Knot Ring
       ctx.fillStyle = '#d97706';
       ctx.strokeStyle = '#78350f';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.arc(pKnot.x, pKnot.y, 5.5, 0, Math.PI * 2);
+      ctx.arc(pKnot.x, pKnot.y, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Hanging vertical string
-      const dropLen = 32;
+      // Vertical string
+      const dropLen = 30;
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(pKnot.x, pKnot.y + 5);
+      ctx.moveTo(pKnot.x, pKnot.y + 6);
       ctx.lineTo(pKnot.x, pKnot.y + dropLen);
       ctx.stroke();
 
-      // Metallic Hooked Slotted Weight
-      const massY = pKnot.y + dropLen;
-      const mw = 22;
-      const mh = 26;
-
-      ctx.fillStyle = '#475569';
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(pKnot.x - mw / 2, massY, mw, mh);
-      ctx.strokeRect(pKnot.x - mw / 2, massY, mw, mh);
-
-      // Mass label
+      const topY = pKnot.y + dropLen;
       const isMystery = this.state.activeScenario === 'mystery';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 8.5px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(isMystery ? '???' : `${Math.round(massKg * 1000)}g`, pKnot.x, massY + mh / 2);
+
+      if (isMystery) {
+        // Mystery Load Canister
+        const boxW = 42;
+        const boxH = 48;
+        ctx.fillStyle = '#d67b19';
+        drawRoundedRect(ctx, pKnot.x - boxW / 2, topY, boxW, boxH, 6, true, true);
+        ctx.strokeStyle = '#a35a0d';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', pKnot.x, topY + boxH / 2 - 4);
+
+        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.fillText(`MASS ${this.state.currentMystery}`, pKnot.x, topY + boxH - 10);
+      } else {
+        // Realistic Slotted Mass Hanger with Brass Discs
+        const hangerW = 38;
+        const discH = 8;
+        const massG = Math.round(massKg * 1000);
+
+        // Hanger Rod
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(pKnot.x, topY + 3, 3.5, 0, Math.PI * 2);
+        ctx.moveTo(pKnot.x, topY + 7);
+        ctx.lineTo(pKnot.x, topY + 54);
+        ctx.stroke();
+
+        // Base plate
+        ctx.fillStyle = '#475569';
+        drawRoundedRect(ctx, pKnot.x - hangerW / 2, topY + 52, hangerW, 5, 2, true, false);
+
+        // Brass Slotted Discs
+        const numDiscs = Math.max(1, Math.min(5, Math.ceil(massG / 200)));
+        for (let i = 0; i < numDiscs; i++) {
+          const discY = topY + 52 - (i + 1) * (discH + 1);
+          const grad = ctx.createLinearGradient(pKnot.x - hangerW / 2, discY, pKnot.x + hangerW / 2, discY);
+          grad.addColorStop(0, '#d67b19');
+          grad.addColorStop(0.5, '#fef5ea');
+          grad.addColorStop(1, '#a35a0d');
+          ctx.fillStyle = grad;
+          drawRoundedRect(ctx, pKnot.x - hangerW / 2, discY, hangerW, discH, 2, true, true);
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // Tag
+        ctx.fillStyle = '#0f7e9b';
+        drawRoundedRect(ctx, pKnot.x - 26, topY + 62, 52, 18, 4, true, false);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${massG} g`, pKnot.x, topY + 71);
+      }
 
       ctx.restore();
     }
 
     drawForceVectors3D(ctx, w, h, eq, pKnot) {
       ctx.save();
-      const vScale = 6.5; // px per Newton
+      const vScale = 7.5; // px per Newton
 
       // 3 Tension vectors
       const tVecs = [
@@ -1178,7 +1449,7 @@
         const pEnd = this.project3D(pEndWorld, w, h);
         if (pEnd) {
           ctx.strokeStyle = tv.color;
-          ctx.lineWidth = 2.5;
+          ctx.lineWidth = 2.8;
           ctx.beginPath();
           ctx.moveTo(pKnot.x, pKnot.y);
           ctx.lineTo(pEnd.x, pEnd.y);
@@ -1189,8 +1460,8 @@
           ctx.fillStyle = tv.color;
           ctx.beginPath();
           ctx.moveTo(pEnd.x, pEnd.y);
-          ctx.lineTo(pEnd.x - 7 * Math.cos(angle - Math.PI / 6), pEnd.y - 7 * Math.sin(angle - Math.PI / 6));
-          ctx.lineTo(pEnd.x - 7 * Math.cos(angle + Math.PI / 6), pEnd.y - 7 * Math.sin(angle + Math.PI / 6));
+          ctx.lineTo(pEnd.x - 8 * Math.cos(angle - Math.PI / 6), pEnd.y - 8 * Math.sin(angle - Math.PI / 6));
+          ctx.lineTo(pEnd.x - 8 * Math.cos(angle + Math.PI / 6), pEnd.y - 8 * Math.sin(angle + Math.PI / 6));
           ctx.closePath();
           ctx.fill();
         }
@@ -1205,7 +1476,7 @@
       const pGrav = this.project3D(pGravWorld, w, h);
       if (pGrav) {
         ctx.strokeStyle = '#dc2626';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.8;
         ctx.beginPath();
         ctx.moveTo(pKnot.x, pKnot.y);
         ctx.lineTo(pGrav.x, pGrav.y);
@@ -1214,8 +1485,8 @@
         ctx.fillStyle = '#dc2626';
         ctx.beginPath();
         ctx.moveTo(pGrav.x, pGrav.y);
-        ctx.lineTo(pGrav.x - 4, pGrav.y - 7);
-        ctx.lineTo(pGrav.x + 4, pGrav.y - 7);
+        ctx.lineTo(pGrav.x - 5, pGrav.y - 8);
+        ctx.lineTo(pGrav.x + 5, pGrav.y - 8);
         ctx.closePath();
         ctx.fill();
       }
@@ -1223,12 +1494,162 @@
       ctx.restore();
     }
 
-    drawOrientationGizmo(ctx, w, h) {
-      // 3D Mini Orientation Tripod in bottom-left corner
+    // =========================================================================
+    // Virtual Dual-Scale Protractor (Authentic The Thinking Experiment Tool)
+    // =========================================================================
+    drawProtractor(ctx, protX, protY) {
       ctx.save();
-      const ox = 40;
-      const oy = h - 40;
-      const arm = 24;
+      ctx.translate(protX, protY);
+      ctx.rotate((this.state.protractor.rotationDeg * Math.PI) / 180);
+
+      const r = this.state.protractor.radius;
+
+      // Semi-transparent Acrylic Body (180 deg)
+      ctx.fillStyle = 'rgba(224, 242, 247, 0.84)';
+      ctx.strokeStyle = '#0f7e9b';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r, Math.PI, 0, false);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Dividing Arc separating Outer Scale and Inner Scale
+      ctx.strokeStyle = 'rgba(15, 126, 155, 0.45)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, r - 25, Math.PI, 0, false);
+      ctx.stroke();
+
+      // Inner Cutout
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+      ctx.strokeStyle = '#0f7e9b';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.40, Math.PI, 0, false);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Origin Baseline (Horizontal Alignment Line)
+      ctx.strokeStyle = 'rgba(15, 126, 155, 0.6)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-r, 0);
+      ctx.lineTo(r, 0);
+      ctx.stroke();
+
+      // Center Origin Crosshairs & Sighting Ring
+      ctx.strokeStyle = '#d67b19';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-16, 0);
+      ctx.lineTo(16, 0);
+      ctx.moveTo(0, -16);
+      ctx.lineTo(0, 16);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Graduated Degree Ticks & Numbers (Dual Scale)
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let deg = 0; deg <= 180; deg += 1) {
+        const rad = Math.PI - (deg * Math.PI) / 180;
+
+        // Outer rim ticks (every 1°, 5°, 10°)
+        let outerTickLen = 3.5;
+        if (deg % 10 === 0) outerTickLen = 10;
+        else if (deg % 5 === 0) outerTickLen = 6.5;
+
+        const ox1 = (r - 2) * Math.cos(rad);
+        const oy1 = -(r - 2) * Math.sin(rad);
+        const ox2 = (r - 2 - outerTickLen) * Math.cos(rad);
+        const oy2 = -(r - 2 - outerTickLen) * Math.sin(rad);
+
+        ctx.strokeStyle = '#0f7e9b';
+        ctx.lineWidth = (deg % 10 === 0) ? 1.3 : 0.65;
+        ctx.beginPath();
+        ctx.moveTo(ox1, oy1);
+        ctx.lineTo(ox2, oy2);
+        ctx.stroke();
+
+        // Inner scale ticks extending inward from dividing arc
+        if (deg % 5 === 0) {
+          const innerTickLen = (deg % 10 === 0) ? 6 : 4;
+          const inR1 = r - 25;
+          const inR2 = r - 25 - innerTickLen;
+          const ix1 = inR1 * Math.cos(rad);
+          const iy1 = -inR1 * Math.sin(rad);
+          const ix2 = inR2 * Math.cos(rad);
+          const iy2 = -inR2 * Math.sin(rad);
+
+          ctx.strokeStyle = (deg % 10 === 0) ? '#d67b19' : 'rgba(214, 123, 25, 0.6)';
+          ctx.lineWidth = (deg % 10 === 0) ? 1.1 : 0.65;
+          ctx.beginPath();
+          ctx.moveTo(ix1, iy1);
+          ctx.lineTo(ix2, iy2);
+          ctx.stroke();
+        }
+
+        // Dual Degree Numbers every 10°
+        if (deg % 10 === 0) {
+          // 1. Outer Scale: 0° to 180° Left-to-Right (Teal)
+          const outTextR = r - 16;
+          const otx = outTextR * Math.cos(rad);
+          const oty = -outTextR * Math.sin(rad);
+          ctx.fillStyle = '#0a576b';
+          ctx.font = 'bold 7px Inter, sans-serif';
+          ctx.fillText(deg.toString(), otx, oty);
+
+          // 2. Inner Scale: 0° to 180° Right-to-Left (Amber)
+          const inTextR = r - 36;
+          const itx = inTextR * Math.cos(rad);
+          const ity = -inTextR * Math.sin(rad);
+          const innerDeg = 180 - deg;
+          ctx.fillStyle = '#d67b19';
+          ctx.font = 'bold 6.5px Inter, sans-serif';
+          ctx.fillText(innerDeg.toString(), itx, ity);
+        }
+      }
+
+      // Quick reference labels
+      ctx.fillStyle = '#0a576b';
+      ctx.font = 'bold 6px Inter, sans-serif';
+      ctx.fillText('OUTER', 0, -r + 21);
+      ctx.fillStyle = '#d67b19';
+      ctx.fillText('INNER', 0, -r + 43);
+
+      // Rotation Drag Handle (Orange circle on outer edge)
+      const rotX = r + 18;
+      const rotY = 0;
+      ctx.fillStyle = '#d67b19';
+      ctx.beginPath();
+      ctx.arc(rotX, rotY, 7.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = '#0f7e9b';
+      drawRoundedRect(ctx, -40, -r - 18, 80, 16, 3, true, false);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 8.5px Inter, sans-serif';
+      ctx.fillText('PROTRACTOR', 0, -r - 10);
+
+      ctx.restore();
+    }
+
+    drawOrientationGizmo(ctx, w, h) {
+      ctx.save();
+      const ox = 45;
+      const oy = h - 45;
+      const arm = 26;
 
       const cam = this.state.camera;
       const cosY = Math.cos(cam.yaw);
@@ -1247,7 +1668,7 @@
       const gY = projectGizmo(0, 1, 0);
       const gZ = projectGizmo(0, 0, 1);
 
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
 
       // X Axis (Teal)
       ctx.strokeStyle = '#0f7e9b';
@@ -1271,7 +1692,7 @@
       ctx.stroke();
 
       ctx.fillStyle = '#0f7e9b';
-      ctx.font = 'bold 8px Inter, sans-serif';
+      ctx.font = 'bold 9px Inter, sans-serif';
       ctx.fillText('X', gX.x + 3, gX.y);
       ctx.fillStyle = '#1b8a5a';
       ctx.fillText('Y', gY.x, gY.y - 3);
