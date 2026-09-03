@@ -257,18 +257,18 @@ body {
 }
 
 /* ==========================================================================
-   Main Grid Layout
+   Main Grid Layout (Canvas Prominence for AP Physics C)
    ========================================================================== */
 .main-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.85fr);
   gap: 1.15rem;
   align-items: start;
 }
 
 @media (min-width: 1400px) {
   .main-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.75fr);
   }
 }
 
@@ -397,7 +397,7 @@ body {
 .canvas-card canvas {
   display: block;
   width: 100%;
-  height: 570px;
+  height: 660px;
   cursor: grab;
   user-select: none;
   background: radial-gradient(circle at 50% 40%, #ffffff 0%, #f0f7fb 100%);
@@ -723,9 +723,9 @@ body {
 }
 
 .table-input {
-  width: 64px;
-  padding: 0.2rem 0.25rem;
-  font-size: 0.78rem;
+  width: 58px;
+  padding: 0.18rem 0.2rem;
+  font-size: 0.75rem;
   font-weight: 700;
   border: 1.5px solid var(--border);
   border-radius: 4px;

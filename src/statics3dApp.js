@@ -59,6 +59,8 @@
         chkVectors: document.getElementById('chkVectors'),
         chkBadges: document.getElementById('chkBadges'),
         chkDrops: document.getElementById('chkDrops'),
+        chkZoomScales: document.getElementById('chkZoomScales'),
+        chkCoordsHUD: document.getElementById('chkCoordsHUD'),
         btnResetCam: document.getElementById('btnResetCam'),
 
         // Protractor Measurement Controls
@@ -128,12 +130,12 @@
         },
         currentMystery: 'A',
 
-        // 3D Camera Orbit Configuration (Calibrated to fill canvas space)
+        // 3D Camera Orbit Configuration (Calibrated for AP Physics C)
         camera: {
           yaw: 35 * (Math.PI / 180),    // Horizontal orbit angle
-          pitch: 26 * (Math.PI / 180),  // Elevation angle
-          distance: 60,                 // Closer distance to fill canvas
-          target: { x: 0, y: 13.5, z: 0 },
+          pitch: 22 * (Math.PI / 180),  // Elevation angle
+          distance: 72,                 // Calibrated distance to prevent clipping
+          target: { x: 0, y: 15, z: 0 },
           fov: 620,                     // Expanded FOV
           isDragging: false,
           lastMouseX: 0,
@@ -146,7 +148,7 @@
           x: 0,
           y: 0,
           rotationDeg: 0,
-          radius: 130,
+          radius: 125,
           isSnapped: true
         },
 
@@ -156,6 +158,8 @@
         showVectors: true,
         showBadges: true,
         showDrops: true,
+        showZoomScales: true,
+        showCoordsHUD: true,
 
         // Settling Bobbing Animation
         bobbingOffset: 0
@@ -582,6 +586,18 @@
       if (this.dom.chkDrops) {
         this.dom.chkDrops.addEventListener('change', (e) => {
           this.state.showDrops = e.target.checked;
+          this.render();
+        });
+      }
+      if (this.dom.chkZoomScales) {
+        this.dom.chkZoomScales.addEventListener('change', (e) => {
+          this.state.showZoomScales = e.target.checked;
+          this.render();
+        });
+      }
+      if (this.dom.chkCoordsHUD) {
+        this.dom.chkCoordsHUD.addEventListener('change', (e) => {
+          this.state.showCoordsHUD = e.target.checked;
           this.render();
         });
       }
@@ -1125,111 +1141,211 @@
       renderQueue.sort((a, b) => b.depth - a.depth);
 
       // Execute all draw calls in order
-      renderQueue.forEach(item => item.draw());
-
-      // Screen space HUD elements: Dual-Scale Protractor
+            // Screen space HUD elements: Dual-Scale Protractor
       if (this.state.protractor.visible) {
         this.drawProtractor(ctx, this.state.protractor.x, this.state.protractor.y);
+      }
+
+      // Vertical Zoom Scales for High Precision Reading (AP Physics C Standard)
+      if (this.state.showZoomScales && eq) {
+        this.drawAllZoomScales(ctx, w, h, eq);
+      }
+
+      // 3D Cartesian Coordinates & Angles HUD
+      if (this.state.showCoordsHUD && eq) {
+        this.draw3DCoordinatesHUD(ctx, w, h, eq);
       }
 
       // Orientation axes gizmo
       this.drawOrientationGizmo(ctx, w, h);
     }
 
-    drawTabletopGrid(ctx, w, h) {
+    drawAllZoomScales(ctx, w, h, eq) {
+      const scaleW = 68;
+      const scaleH = 210;
+      const startX = w - (scaleW * 3 + 28);
+      const startY = 48;
+
+      const pC1 = this.project3D(eq.anchors.a1, w, h);
+      const pC2 = this.project3D(eq.anchors.a2, w, h);
+      const pC3 = this.project3D(eq.anchors.a3, w, h);
+
+      this.drawVerticalZoomScale(ctx, startX, startY, scaleW, scaleH, eq.tensions.t1, eq.readTensions.t1, 'T₁ (Stand 1)', '#0f7e9b', pC1);
+      this.drawVerticalZoomScale(ctx, startX + scaleW + 6, startY, scaleW, scaleH, eq.tensions.t2, eq.readTensions.t2, 'T₂ (Stand 2)', '#d67b19', pC2);
+      this.drawVerticalZoomScale(ctx, startX + (scaleW + 6) * 2, startY, scaleW, scaleH, eq.tensions.t3, eq.readTensions.t3, 'T₃ (Stand 3)', '#1b8a5a', pC3);
+    }
+
+    drawVerticalZoomScale(ctx, x, y, width, height, tension, readTension, title, themeColor, anchorPoint) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(200, 219, 227, 0.45)';
-      ctx.lineWidth = 1;
 
-      const size = 36;
-      const step = 8;
-
-      for (let x = -size; x <= size; x += step) {
-        const p1 = this.project3D({ x, y: 0, z: -size }, w, h);
-        const p2 = this.project3D({ x, y: 0, z: size }, w, h);
-        if (p1 && p2) {
-          ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.stroke();
-        }
-      }
-
-      for (let z = -size; z <= size; z += step) {
-        const p1 = this.project3D({ x: -size, y: 0, z: z }, w, h);
-        const p2 = this.project3D({ x: size, y: 0, z: z }, w, h);
-        if (p1 && p2) {
-          ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.stroke();
-        }
-      }
-
-      // Table boundary circle
-      ctx.strokeStyle = 'rgba(15, 126, 155, 0.35)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      const numSegs = 36;
-      for (let i = 0; i <= numSegs; i++) {
-        const angle = (i / numSegs) * Math.PI * 2;
-        const pt = this.project3D({ x: Math.cos(angle) * 36, y: 0, z: Math.sin(angle) * 36 }, w, h);
-        if (pt) {
-          if (i === 0) ctx.moveTo(pt.x, pt.y);
-          else ctx.lineTo(pt.x, pt.y);
-        }
-      }
+      // Card Container
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      drawRoundedRect(ctx, x, y, width, height, 6, true, true);
+      ctx.strokeStyle = themeColor;
+      ctx.lineWidth = 1.6;
       ctx.stroke();
+
+      // Header Banner
+      ctx.fillStyle = themeColor;
+      drawRoundedRect(ctx, x + 3, y + 3, width - 6, 17, 3, true, false);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 8.5px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(title, x + width / 2, y + 11);
+
+      // Subtitle
+      ctx.fillStyle = '#64748b';
+      ctx.font = '7px Inter, sans-serif';
+      ctx.fillText('0–10 N (0.2N)', x + width / 2, y + 27);
+
+      // Barrel Dimensions
+      const barrelX = x + 7;
+      const barrelY = y + 34;
+      const barrelW = 20;
+      const barrelH = height - 54;
+      const usableH = barrelH - 8;
+
+      // Acrylic Tube Background
+      ctx.fillStyle = '#f8fafc';
+      drawRoundedRect(ctx, barrelX, barrelY, barrelW, barrelH, 2, true, true);
+      ctx.strokeStyle = themeColor;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Spring Extension
+      const ext = Math.max(0, Math.min(usableH, (tension / 10) * usableH));
+      const indY = barrelY + 4 + ext;
+
+      // Helical Spring
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(barrelX + barrelW / 2, barrelY + 2);
+      const coils = 10;
+      for (let i = 0; i <= coils; i++) {
+        const cy = barrelY + 2 + (i / coils) * ext;
+        const cx = barrelX + barrelW / 2 + (i % 2 === 0 ? -3 : 3);
+        ctx.lineTo(cx, cy);
+      }
+      ctx.lineTo(barrelX + barrelW / 2, indY);
+      ctx.stroke();
+
+      // Hook Rod
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(barrelX + barrelW / 2, indY);
+      ctx.lineTo(barrelX + barrelW / 2, barrelY + barrelH + 4);
+      ctx.stroke();
+
+      // Red Indicator Ring
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(barrelX + 1, indY - 1.5, barrelW - 2, 3);
+
+      // Graduated Newton Ticks (0 to 10 N every 0.2 N)
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      for (let n = 0; n <= 10; n += 0.2) {
+        const val = Math.round(n * 10) / 10;
+        const tickY = barrelY + 4 + (val / 10) * usableH;
+        const isWhole = Math.abs(val - Math.round(val)) < 0.05;
+        const isEven = Math.abs(val % 2) < 0.05;
+
+        if (isWhole) {
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(barrelX + barrelW, tickY);
+          ctx.lineTo(barrelX + barrelW + 5, tickY);
+          ctx.stroke();
+
+          if (isEven) {
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 7px Inter, sans-serif';
+            ctx.fillText(Math.round(val).toString(), barrelX + barrelW + 7, tickY);
+          }
+        } else {
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(barrelX + barrelW, tickY);
+          ctx.lineTo(barrelX + barrelW + 3, tickY);
+          ctx.stroke();
+        }
+      }
+
+      // Live force readout badge (hidden in mystery mode)
+      const isMystery = this.state.activeScenario === 'mystery';
+      if (!isMystery) {
+        ctx.fillStyle = themeColor;
+        drawRoundedRect(ctx, x + 4, height - 16, width - 8, 14, 3, true, false);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 8px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const txt = this.state.isRealLabMode ? `~${readTension.toFixed(1)} N` : `${tension.toFixed(2)} N`;
+        ctx.fillText(txt, x + width / 2, height - 9);
+      } else {
+        ctx.fillStyle = '#fef5ea';
+        drawRoundedRect(ctx, x + 4, height - 16, width - 8, 14, 3, true, false);
+        ctx.fillStyle = '#d67b19';
+        ctx.font = 'bold 7.5px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Read Scale', x + width / 2, height - 9);
+      }
+
       ctx.restore();
     }
 
-    drawWorldAxes(ctx, w, h) {
-      const pOrigin = this.project3D({ x: 0, y: 0, z: 0 }, w, h);
-      if (!pOrigin) return;
-
-      const len = 16;
-      const pX = this.project3D({ x: len, y: 0, z: 0 }, w, h);
-      const pY = this.project3D({ x: 0, y: len, z: 0 }, w, h);
-      const pZ = this.project3D({ x: 0, y: 0, z: len }, w, h);
-
+    draw3DCoordinatesHUD(ctx, w, h, eq) {
       ctx.save();
-      ctx.lineWidth = 2;
+      const cardW = 340;
+      const cardH = 96;
+      const x = 12;
+      const y = h - cardH - 12;
 
-      // X Axis (Teal)
-      if (pX) {
-        ctx.strokeStyle = '#0f7e9b';
-        ctx.beginPath();
-        ctx.moveTo(pOrigin.x, pOrigin.y);
-        ctx.lineTo(pX.x, pX.y);
-        ctx.stroke();
-        ctx.fillStyle = '#0f7e9b';
-        ctx.font = 'bold 10px Inter, sans-serif';
-        ctx.fillText('+X', pX.x + 4, pX.y);
-      }
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+      drawRoundedRect(ctx, x, y, cardW, cardH, 6, true, true);
+      ctx.strokeStyle = '#0f7e9b';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
 
-      // Y Axis (Vertical Upward - Green)
-      if (pY) {
-        ctx.strokeStyle = '#1b8a5a';
-        ctx.beginPath();
-        ctx.moveTo(pOrigin.x, pOrigin.y);
-        ctx.lineTo(pY.x, pY.y);
-        ctx.stroke();
-        ctx.fillStyle = '#1b8a5a';
-        ctx.font = 'bold 10px Inter, sans-serif';
-        ctx.fillText('+Y (Up)', pY.x, pY.y - 4);
-      }
+      ctx.fillStyle = '#0f7e9b';
+      ctx.font = 'bold 9px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('AP PHYSICS C: 3D METRIC COORDINATES & ELEVATION ANGLES', x + 8, y + 14);
 
-      // Z Axis (Depth - Amber)
-      if (pZ) {
-        ctx.strokeStyle = '#d67b19';
-        ctx.beginPath();
-        ctx.moveTo(pOrigin.x, pOrigin.y);
-        ctx.lineTo(pZ.x, pZ.y);
-        ctx.stroke();
-        ctx.fillStyle = '#d67b19';
-        ctx.font = 'bold 10px Inter, sans-serif';
-        ctx.fillText('+Z', pZ.x + 4, pZ.y);
-      }
+      const knotStr = `Knot P: (${eq.knot.x.toFixed(1)}, ${eq.knot.y.toFixed(1)}, ${eq.knot.z.toFixed(1)}) cm`;
+      ctx.fillStyle = '#475569';
+      ctx.font = '8px Inter, sans-serif';
+      ctx.fillText(knotStr, x + 8, y + 27);
+
+      const items = [
+        { name: 'Cable 1', a: eq.anchors.a1, u: eq.unitVectors.u1, color: '#0f7e9b', ang: eq.angles.angles1 },
+        { name: 'Cable 2', a: eq.anchors.a2, u: eq.unitVectors.u2, color: '#d67b19', ang: eq.angles.angles2 },
+        { name: 'Cable 3', a: eq.anchors.a3, u: eq.unitVectors.u3, color: '#1b8a5a', ang: eq.angles.angles3 }
+      ];
+
+      items.forEach((item, idx) => {
+        const rowY = y + 43 + idx * 17;
+        const dx = (item.a.x - eq.knot.x).toFixed(1);
+        const dy = (item.a.y - eq.knot.y).toFixed(1);
+        const dz = (item.a.z - eq.knot.z).toFixed(1);
+        const L = Math.hypot(item.a.x - eq.knot.x, item.a.y - eq.knot.y, item.a.z - eq.knot.z).toFixed(1);
+        const elev = (Math.asin(Math.max(-1, Math.min(1, item.u.y))) * (180 / Math.PI)).toFixed(1);
+
+        ctx.fillStyle = item.color;
+        ctx.font = 'bold 8px Inter, sans-serif';
+        ctx.fillText(`${item.name}:`, x + 8, rowY);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '8px monospace';
+        ctx.fillText(`Δr=<${dx},${dy},${dz}>cm`, x + 52, rowY);
+        ctx.fillText(`L=${L}cm`, x + 195, rowY);
+        ctx.fillText(`θ_elev=${elev}°`, x + 258, rowY);
+      });
 
       ctx.restore();
     }
@@ -1237,38 +1353,41 @@
     drawRingStand(ctx, pBase, pClamp, id, color) {
       ctx.save();
 
-      // Heavy Cast Iron Base
+      // Cast Iron Base (Fixed crisp size: 28 x 14 px)
       ctx.fillStyle = '#334155';
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.ellipse(pBase.x, pBase.y, 16 * pBase.scale, 8 * pBase.scale, 0, 0, Math.PI * 2);
+      ctx.ellipse(pBase.x, pBase.y, 28, 14, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Steel Vertical Rod
+      // Steel Vertical Rod (Fixed width: 4.5 px)
       ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 4 * pBase.scale;
+      ctx.lineWidth = 4.5;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(pBase.x, pBase.y);
-      ctx.lineTo(pClamp.x, pClamp.y - 14 * pClamp.scale);
+      ctx.lineTo(pClamp.x, pClamp.y - 12);
       ctx.stroke();
 
-      // Adjustable Clamp Collar
+      // Adjustable Clamp Collar (Fixed radius: 7 px)
       ctx.fillStyle = color;
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.arc(pClamp.x, pClamp.y, 6 * pClamp.scale, 0, Math.PI * 2);
+      ctx.arc(pClamp.x, pClamp.y, 7, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Stand Label
+      // Stand Label Badge (Fixed crisp pill: 50 x 16 px)
       ctx.fillStyle = color;
-      ctx.font = `bold ${Math.max(10, Math.round(12 * pClamp.scale))}px Inter, sans-serif`;
+      drawRoundedRect(ctx, pClamp.x - 25, pClamp.y - 28, 50, 16, 4, true, false);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9.5px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`Stand ${id}`, pClamp.x, pClamp.y - 16 * pClamp.scale);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`Stand ${id}`, pClamp.x, pClamp.y - 20);
 
       ctx.restore();
     }
