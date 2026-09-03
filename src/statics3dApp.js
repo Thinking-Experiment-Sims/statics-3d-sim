@@ -1141,7 +1141,9 @@
       renderQueue.sort((a, b) => b.depth - a.depth);
 
       // Execute all draw calls in order
-            // Screen space HUD elements: Dual-Scale Protractor
+      renderQueue.forEach(item => item.draw());
+
+      // Screen space HUD elements: Dual-Scale Protractor
       if (this.state.protractor.visible) {
         this.drawProtractor(ctx, this.state.protractor.x, this.state.protractor.y);
       }
@@ -1158,6 +1160,104 @@
 
       // Orientation axes gizmo
       this.drawOrientationGizmo(ctx, w, h);
+    }
+
+    drawTabletopGrid(ctx, w, h) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(200, 219, 227, 0.45)';
+      ctx.lineWidth = 1;
+
+      const size = 36;
+      const step = 8;
+
+      for (let x = -size; x <= size; x += step) {
+        const p1 = this.project3D({ x, y: 0, z: -size }, w, h);
+        const p2 = this.project3D({ x, y: 0, z: size }, w, h);
+        if (p1 && p2) {
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      }
+
+      for (let z = -size; z <= size; z += step) {
+        const p1 = this.project3D({ x: -size, y: 0, z: z }, w, h);
+        const p2 = this.project3D({ x: size, y: 0, z: z }, w, h);
+        if (p1 && p2) {
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      }
+
+      // Table boundary circle
+      ctx.strokeStyle = 'rgba(15, 126, 155, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      const numSegs = 36;
+      for (let i = 0; i <= numSegs; i++) {
+        const angle = (i / numSegs) * Math.PI * 2;
+        const pt = this.project3D({ x: Math.cos(angle) * 36, y: 0, z: Math.sin(angle) * 36 }, w, h);
+        if (pt) {
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    drawWorldAxes(ctx, w, h) {
+      const pOrigin = this.project3D({ x: 0, y: 0, z: 0 }, w, h);
+      if (!pOrigin) return;
+
+      const len = 16;
+      const pX = this.project3D({ x: len, y: 0, z: 0 }, w, h);
+      const pY = this.project3D({ x: 0, y: len, z: 0 }, w, h);
+      const pZ = this.project3D({ x: 0, y: 0, z: len }, w, h);
+
+      ctx.save();
+      ctx.lineWidth = 2;
+
+      // X Axis (Teal)
+      if (pX) {
+        ctx.strokeStyle = '#0f7e9b';
+        ctx.beginPath();
+        ctx.moveTo(pOrigin.x, pOrigin.y);
+        ctx.lineTo(pX.x, pX.y);
+        ctx.stroke();
+        ctx.fillStyle = '#0f7e9b';
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.fillText('+X', pX.x + 4, pX.y);
+      }
+
+      // Y Axis (Vertical Upward - Green)
+      if (pY) {
+        ctx.strokeStyle = '#1b8a5a';
+        ctx.beginPath();
+        ctx.moveTo(pOrigin.x, pOrigin.y);
+        ctx.lineTo(pY.x, pY.y);
+        ctx.stroke();
+        ctx.fillStyle = '#1b8a5a';
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.fillText('+Y (Up)', pY.x, pY.y - 4);
+      }
+
+      // Z Axis (Depth - Amber)
+      if (pZ) {
+        ctx.strokeStyle = '#d67b19';
+        ctx.beginPath();
+        ctx.moveTo(pOrigin.x, pOrigin.y);
+        ctx.lineTo(pZ.x, pZ.y);
+        ctx.stroke();
+        ctx.fillStyle = '#d67b19';
+        ctx.font = 'bold 10px Inter, sans-serif';
+        ctx.fillText('+Z', pZ.x + 4, pZ.y);
+      }
+
+      ctx.restore();
     }
 
     drawAllZoomScales(ctx, w, h, eq) {
