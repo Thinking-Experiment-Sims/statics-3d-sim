@@ -427,8 +427,9 @@
     snapProtractorToKnot() {
       const canvas = this.dom.canvas;
       if (!canvas || !this.equilibrium) return;
-      const w = canvas.width;
-      const h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
       const pKnot = this.project3D(this.equilibrium.knot, w, h);
       if (pKnot) {
         this.state.protractor.x = pKnot.x;
@@ -441,8 +442,9 @@
       this.snapProtractorToKnot();
       const canvas = this.dom.canvas;
       if (!canvas || !this.equilibrium) return;
-      const w = canvas.width;
-      const h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
 
       const pKnot = this.project3D(this.equilibrium.knot, w, h);
       let anchor = null;
@@ -680,10 +682,9 @@
 
       const getCanvasCoords = (clientX, clientY) => {
         const rect = canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
         return {
-          x: (clientX - rect.left) * (canvas.width / rect.width),
-          y: (clientY - rect.top) * (canvas.height / rect.height)
+          x: clientX - rect.left,
+          y: clientY - rect.top
         };
       };
 
@@ -700,8 +701,9 @@
           // 1. Rotation handle: at (px + (r + 18)*cos(rot), py + (r + 18)*sin(rot))
           const handleX = px + (r + 18) * Math.cos(rotRad);
           const handleY = py + (r + 18) * Math.sin(rotRad);
-          if (Math.hypot(x - handleX, y - handleY) <= 18) {
+          if (Math.hypot(x - handleX, y - handleY) <= 22) {
             this.dragTarget = 'protractor_rot';
+            canvas.style.cursor = 'grabbing';
             return;
           }
 
@@ -712,6 +714,7 @@
             this.dragOffset.x = x - px;
             this.dragOffset.y = y - py;
             this.state.protractor.isSnapped = false;
+            canvas.style.cursor = 'grabbing';
             return;
           }
         }
@@ -721,6 +724,7 @@
         this.state.camera.isDragging = true;
         this.state.camera.lastMouseX = clientX;
         this.state.camera.lastMouseY = clientY;
+        canvas.style.cursor = 'grabbing';
       };
 
       const handleMove = (clientX, clientY) => {
@@ -742,8 +746,11 @@
 
           // Auto-snap if dragged near knot
           if (this.equilibrium) {
-            const pKnot = this.project3D(this.equilibrium.knot, canvas.width, canvas.height);
-            if (pKnot && Math.hypot(this.state.protractor.x - pKnot.x, this.state.protractor.y - pKnot.y) < 22) {
+            const dpr = window.devicePixelRatio || 1;
+            const w = canvas.width / dpr;
+            const h = canvas.height / dpr;
+            const pKnot = this.project3D(this.equilibrium.knot, w, h);
+            if (pKnot && Math.hypot(this.state.protractor.x - pKnot.x, this.state.protractor.y - pKnot.y) < 26) {
               this.state.protractor.x = pKnot.x;
               this.state.protractor.y = pKnot.y;
               this.state.protractor.isSnapped = true;
@@ -778,7 +785,32 @@
       const handleUp = () => {
         this.dragTarget = null;
         this.state.camera.isDragging = false;
+        canvas.style.cursor = 'grab';
       };
+
+      // Mouse Hover Cursor Feedback
+      canvas.addEventListener('mousemove', (e) => {
+        if (this.dragTarget) return;
+        if (!this.state.protractor.visible) {
+          canvas.style.cursor = 'grab';
+          return;
+        }
+        const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+        const px = this.state.protractor.x;
+        const py = this.state.protractor.y;
+        const r = this.state.protractor.radius;
+        const rotRad = (this.state.protractor.rotationDeg * Math.PI) / 180;
+        const handleX = px + (r + 18) * Math.cos(rotRad);
+        const handleY = py + (r + 18) * Math.sin(rotRad);
+
+        if (Math.hypot(x - handleX, y - handleY) <= 22) {
+          canvas.style.cursor = 'pointer';
+        } else if (Math.hypot(x - px, y - py) <= r) {
+          canvas.style.cursor = 'move';
+        } else {
+          canvas.style.cursor = 'grab';
+        }
+      });
 
       // Mouse Listeners
       canvas.addEventListener('mousedown', (e) => handleDown(e.clientX, e.clientY));
@@ -1862,8 +1894,17 @@
     drawOrientationGizmo(ctx, w, h) {
       ctx.save();
       const ox = 45;
-      const oy = h - 45;
-      const arm = 26;
+      const oy = 48;
+      const arm = 22;
+
+      // Clean background circle card so it is clearly distinct from scene
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+      ctx.beginPath();
+      ctx.arc(ox, oy, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(200, 219, 227, 0.7)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       const cam = this.state.camera;
       const cosY = Math.cos(cam.yaw);
