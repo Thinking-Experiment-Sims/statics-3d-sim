@@ -123,6 +123,21 @@ body {
   color: #ffffff;
 }
 
+.lab-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #b5640e;
+  background: #fff3e5;
+  border: 1px solid #fedbb3;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  margin-left: 0.4rem;
+}
+
 .hero h1 {
   font-size: 1.45rem;
   font-weight: 800;
