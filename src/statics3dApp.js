@@ -105,7 +105,12 @@
         dataLogBody: document.getElementById('dataLogBody'),
         btnRecordTrial: document.getElementById('btnRecordTrial'),
         btnClearLog: document.getElementById('btnClearLog'),
-        btnCopyLog: document.getElementById('btnCopyLog')
+        btnCopyLog: document.getElementById('btnCopyLog'),
+
+        // Lab Guide & Help Modal
+        btnOpenHelp: document.getElementById('btnOpenHelp'),
+        btnCloseHelp: document.getElementById('btnCloseHelp'),
+        helpModal: document.getElementById('helpModal')
       };
 
       // Simulation State
@@ -332,17 +337,24 @@
         const el = document.getElementById(id);
         if (el) el.textContent = `${deg.toFixed(1)}°`;
       };
-      setAng('angA1_elev', eq.angles.angles1.elevDeg);
+      const setElev = (id, inputEl) => {
+        const el = document.getElementById(id);
+        if (el) {
+          const val = inputEl?.value;
+          el.textContent = val ? `${parseFloat(val).toFixed(1)}° (measured)` : 'Measure 📐';
+        }
+      };
+      setElev('angA1_elev', this.dom.inTheta1);
       setAng('angA1_alpha', eq.angles.angles1.alphaDeg);
       setAng('angA1_beta', eq.angles.angles1.betaDeg);
       setAng('angA1_gamma', eq.angles.angles1.gammaDeg);
 
-      setAng('angA2_elev', eq.angles.angles2.elevDeg);
+      setElev('angA2_elev', this.dom.inTheta2);
       setAng('angA2_alpha', eq.angles.angles2.alphaDeg);
       setAng('angA2_beta', eq.angles.angles2.betaDeg);
       setAng('angA2_gamma', eq.angles.angles2.gammaDeg);
 
-      setAng('angA3_elev', eq.angles.angles3.elevDeg);
+      setElev('angA3_elev', this.dom.inTheta3);
       setAng('angA3_alpha', eq.angles.angles3.alphaDeg);
       setAng('angA3_beta', eq.angles.angles3.betaDeg);
       setAng('angA3_gamma', eq.angles.angles3.gammaDeg);
@@ -779,6 +791,27 @@
           if (pane) pane.classList.add('active');
         });
       });
+
+      // Lab Guide & Help Modal
+      if (this.dom.btnOpenHelp) {
+        this.dom.btnOpenHelp.addEventListener('click', () => {
+          if (this.dom.helpModal && typeof this.dom.helpModal.showModal === 'function') {
+            this.dom.helpModal.showModal();
+          }
+        });
+      }
+      if (this.dom.btnCloseHelp) {
+        this.dom.btnCloseHelp.addEventListener('click', () => {
+          if (this.dom.helpModal) this.dom.helpModal.close();
+        });
+      }
+      if (this.dom.helpModal) {
+        this.dom.helpModal.addEventListener('click', (e) => {
+          if (e.target === this.dom.helpModal) {
+            this.dom.helpModal.close();
+          }
+        });
+      }
     }
 
     bindCanvasInteraction() {
@@ -1012,11 +1045,7 @@
 
       setCell('tblFgy', -eq.Fg);
 
-      // Populate input fields with measured/read elevation angles if empty
-      if (this.dom.inTheta1 && !this.dom.inTheta1.value) this.dom.inTheta1.value = eq.angles.angles1.elevDeg.toFixed(1);
-      if (this.dom.inTheta2 && !this.dom.inTheta2.value) this.dom.inTheta2.value = eq.angles.angles2.elevDeg.toFixed(1);
-      if (this.dom.inTheta3 && !this.dom.inTheta3.value) this.dom.inTheta3.value = eq.angles.angles3.elevDeg.toFixed(1);
-
+      // Optional: Auto-fill scale force readings if student has not entered them yet
       if (this.dom.inForce1 && !this.dom.inForce1.value) this.dom.inForce1.value = eq.readTensions.t1.toFixed(1);
       if (this.dom.inForce2 && !this.dom.inForce2.value) this.dom.inForce2.value = eq.readTensions.t2.toFixed(1);
       if (this.dom.inForce3 && !this.dom.inForce3.value) this.dom.inForce3.value = eq.readTensions.t3.toFixed(1);
@@ -1035,17 +1064,24 @@
         const el = document.getElementById(id);
         if (el) el.textContent = `${deg.toFixed(1)}°`;
       };
-      setAngle('angA1_elev', eq.angles.angles1.elevDeg);
+      const setElev = (id, inputEl) => {
+        const el = document.getElementById(id);
+        if (el) {
+          const val = inputEl?.value;
+          el.textContent = val ? `${parseFloat(val).toFixed(1)}° (measured)` : 'Measure 📐';
+        }
+      };
+      setElev('angA1_elev', this.dom.inTheta1);
       setAngle('angA1_alpha', eq.angles.angles1.alphaDeg);
       setAngle('angA1_beta', eq.angles.angles1.betaDeg);
       setAngle('angA1_gamma', eq.angles.angles1.gammaDeg);
 
-      setAngle('angA2_elev', eq.angles.angles2.elevDeg);
+      setElev('angA2_elev', this.dom.inTheta2);
       setAngle('angA2_alpha', eq.angles.angles2.alphaDeg);
       setAngle('angA2_beta', eq.angles.angles2.betaDeg);
       setAngle('angA2_gamma', eq.angles.angles2.gammaDeg);
 
-      setAngle('angA3_elev', eq.angles.angles3.elevDeg);
+      setElev('angA3_elev', this.dom.inTheta3);
       setAngle('angA3_alpha', eq.angles.angles3.alphaDeg);
       setAngle('angA3_beta', eq.angles.angles3.betaDeg);
       setAngle('angA3_gamma', eq.angles.angles3.gammaDeg);
@@ -1591,7 +1627,7 @@
       ctx.fillStyle = '#0f7e9b';
       ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('AP PHYSICS C: 3D COORDINATES & ELEVATION ANGLES', x + 10, y + 16);
+      ctx.fillText('AP PHYSICS C: 3D COORDINATES & VECTORS', x + 10, y + 16);
 
       const knotStr = `Knot P: (${eq.knot.x.toFixed(1)}, ${eq.knot.y.toFixed(1)}, ${eq.knot.z.toFixed(1)}) cm`;
       ctx.fillStyle = '#334155';
@@ -1610,7 +1646,6 @@
         const dy = (item.a.y - eq.knot.y).toFixed(1);
         const dz = (item.a.z - eq.knot.z).toFixed(1);
         const L = Math.hypot(item.a.x - eq.knot.x, item.a.y - eq.knot.y, item.a.z - eq.knot.z).toFixed(1);
-        const elev = (Math.asin(Math.max(-1, Math.min(1, item.u.y))) * (180 / Math.PI)).toFixed(1);
 
         ctx.fillStyle = item.color;
         ctx.font = 'bold 10px Inter, sans-serif';
@@ -1619,8 +1654,8 @@
         ctx.fillStyle = '#1e293b';
         ctx.font = 'bold 10px monospace';
         ctx.fillText(`Δr=<${dx},${dy},${dz}>cm`, x + 62, rowY);
-        ctx.fillText(`L=${L}cm`, x + 240, rowY);
-        ctx.fillText(`θ_elev=${elev}°`, x + 318, rowY);
+        ctx.fillText(`L=${L}cm`, x + 236, rowY);
+        ctx.fillText(`θ_elev: [Measure 📐]`, x + 308, rowY);
       });
 
       ctx.restore();
@@ -2123,7 +2158,7 @@
       const badgeX = pKnot.x + Math.cos(midAngle) * labelDist;
       const badgeY = pKnot.y + Math.sin(midAngle) * labelDist;
 
-      const text = `θ_elev${id}: ${elevDeg.toFixed(1)}°`;
+      const text = `θ_elev${id}`;
       ctx.font = 'bold 9.5px Inter, sans-serif';
       const textW = ctx.measureText(text).width;
       const padX = 5;

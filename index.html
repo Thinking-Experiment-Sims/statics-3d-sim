@@ -40,6 +40,9 @@
             </button>
             <input type="checkbox" id="chkRealLabMode" style="display: none;">
           </div>
+          <button type="button" class="btn btn-ghost" id="btnOpenHelp" style="border: 1px solid var(--primary-teal-border); color: var(--primary-teal); font-weight: 700; font-size: 0.8rem; padding: 0.35rem 0.75rem;" title="Open AP Physics C Lab Guide & Instructions">
+            ❓ Lab Guide &amp; Help
+          </button>
         </div>
       </div>
     </header>
@@ -255,6 +258,7 @@
           <button class="analysis-tab-btn active" data-tab="tab-table">📊 3D Component Table</button>
           <button class="analysis-tab-btn" data-tab="tab-angles">📐 Direction Angles</button>
           <button class="analysis-tab-btn" data-tab="tab-log">📝 Trial Data Log</button>
+          <button class="analysis-tab-btn" data-tab="tab-help">❓ Lab Guide</button>
         </div>
 
         <!-- TAB 1: 3D Force Resolution Table -->
@@ -501,8 +505,178 @@
               </table>
             </div>
           </div>
+        <!-- TAB 4: Lab Guide & Help -->
+        <div class="analysis-tab-pane" id="tab-help">
+          <div class="math-card" style="margin-top: 0.4rem; max-height: 480px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+              <strong style="color: var(--primary-teal); font-size: 0.95rem;">📖 3D Statics Lab Guide &amp; Reference</strong>
+              <span class="badge" style="background: var(--primary-teal-light); color: var(--primary-teal); font-size: 0.72rem; font-weight: 700;">AP Physics C &bull; Mechanics</span>
+            </div>
+
+            <div class="help-card">
+              <h3>📐 1. Measuring Elevation Angles with the Protractor</h3>
+              <p>In this lab, elevation angles (&theta;<sub>elev</sub>) are <strong>not given automatically</strong>. Students must measure them using the on-screen protractor:</p>
+              <div class="help-step-list">
+                <div class="help-step-item">
+                  <span class="help-step-num">1</span>
+                  <span>Click an elevation camera preset above the 3D viewport: <strong>📐 Elev C1</strong>, <strong>📐 Elev C2</strong>, or <strong>📐 Elev C3</strong>. This aligns the camera perpendicular to that cable's vertical plane with 0&deg; perspective distortion.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">2</span>
+                  <span>Observe the reference triangle: the horizontal dashed line represents the <strong>0&deg; horizontal baseline</strong>, and the vertical plumb drop marks the right angle.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">3</span>
+                  <span>Click <strong>📐 Snap Protractor to Knot</strong>. Drag the rotating pointer arm until it aligns with the cable line of action up to the anchor ring.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">4</span>
+                  <span>Read the angle off the dual-scale protractor dial and enter it into the <strong>&theta;<sub>elev</sub></strong> input in the 3D Component Table.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="help-card">
+              <h3>📏 2. Reading Vernier Spring Scales</h3>
+              <p>Each suspension cable is coupled to a standard classroom 0–10 N tubular spring scale:</p>
+              <div class="help-step-list">
+                <div class="help-step-item">
+                  <span class="help-step-num">1</span>
+                  <span><strong>Scale Graduation:</strong> Major tick marks represent <strong>1.0 N</strong>; intermediate minor ticks represent <strong>0.2 N</strong>. Students should interpolate to the nearest 0.05 N.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">2</span>
+                  <span><strong>Ideal Scenario:</strong> Cables are inextensible and digital readouts display exact theoretical values.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">3</span>
+                  <span><strong>Real Lab Mode:</strong> Scale springs stretch under Hooke's Law (<em>k</em> = 250 N/m), causing realistic knot sag and simulated reading uncertainty (&plusmn;0.05 N to &plusmn;0.10 N).</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="help-card">
+              <h3>🧮 3. 3D Vector Statics Mathematics</h3>
+              <p>Because the three cables are non-coplanar, each tension vector &vec;T<sub>i</sub> resolves along three Cartesian axes:</p>
+              <div class="help-formula-box">
+                &vec;u<sub>i</sub> = (&vec;r<sub>clamp,i</sub> - &vec;r<sub>knot</sub>) / |&vec;r<sub>clamp,i</sub> - &vec;r<sub>knot</sub>|<br>
+                T<sub>ix</sub> = T<sub>i</sub> &bull; u<sub>ix</sub> &emsp;|&emsp; T<sub>iy</sub> = T<sub>i</sub> &bull; sin(&theta;<sub>elev,i</sub>) &emsp;|&emsp; T<sub>iz</sub> = T<sub>i</sub> &bull; u<sub>iz</sub>
+              </div>
+              <p>For the suspended knot in static equilibrium (&Sigma;&vec;F = 0):</p>
+              <div class="help-formula-box">
+                &Sigma;F<sub>x</sub> = T<sub>1x</sub> + T<sub>2x</sub> + T<sub>3x</sub> = 0<br>
+                &Sigma;F<sub>y</sub> = T<sub>1y</sub> + T<sub>2y</sub> + T<sub>3y</sub> - m&bull;g = 0 &rArr; m = [ &Sigma; T<sub>i</sub> sin(&theta;<sub>elev,i</sub>) ] / g<br>
+                &Sigma;F<sub>z</sub> = T<sub>1z</sub> + T<sub>2z</sub> + T<sub>3z</sub> = 0
+              </div>
+            </div>
+
+            <div class="help-card">
+              <h3>🧪 4. Solving the Mystery Mass Challenge</h3>
+              <div class="help-step-list">
+                <div class="help-step-item">
+                  <span class="help-step-num">1</span>
+                  <span>Switch to <strong>🧪 2. Mystery Mass Challenge</strong> tab in the upper scenario strip. A mystery mass with unknown weight is suspended.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">2</span>
+                  <span>Read tensions <em>T</em>₁, <em>T</em>₂, <em>T</em>₃ from the three spring scales.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">3</span>
+                  <span>Switch into each elevation view (Elev C1, C2, C3) and measure each elevation angle &theta;<sub>elev</sub> with the protractor.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">4</span>
+                  <span>Calculate vertical components <em>T</em><sub>iy</sub> = <em>T</em><sub>i</sub> &bull; sin(&theta;<sub>elev,i</sub>) and sum them to obtain <em>F</em><sub>g</sub>. Divide by <em>g</em> = 9.80 m/s² and multiply by 1000 to get grams.</span>
+                </div>
+                <div class="help-step-item">
+                  <span class="help-step-num">5</span>
+                  <span>Enter your computed mass in grams and click <strong>Check Mass</strong>.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="help-card">
+              <h3>🕹️ 5. 3D Orbit &amp; Camera Navigation</h3>
+              <p><strong>Left Click + Drag:</strong> Free 3D orbit rotation around the knot.<br>
+              <strong>Right Click + Drag / Shift + Drag:</strong> Pan camera translation.<br>
+              <strong>Scroll Wheel / Pinch:</strong> Zoom camera in and out.<br>
+              <strong>Reset View:</strong> Returns camera to standard isometric lab perspective (45&deg; azimuth, 25&deg; pitch).</p>
+            </div>
+          </div>
         </div>
       </section>
+
+      <!-- Global Help Modal Dialog -->
+      <dialog id="helpModal" class="help-dialog" aria-labelledby="helpModalTitle">
+        <div class="help-modal-header">
+          <h2 id="helpModalTitle">📖 3D Statics Lab Guide &amp; Reference Manual</h2>
+          <button type="button" class="btn-close-dialog" id="btnCloseHelp" aria-label="Close Guide">&times;</button>
+        </div>
+        <div class="help-modal-body">
+          <div class="help-card">
+            <h3>📐 1. How to Measure Elevation Angles</h3>
+            <p>Elevation angles are <strong>not printed on the apparatus</strong> to encourage genuine measurement with the virtual protractor:</p>
+            <div class="help-step-list">
+              <div class="help-step-item">
+                <span class="help-step-num">1</span>
+                <span>Click one of the elevation camera presets: <strong>📐 Elev C1</strong>, <strong>📐 Elev C2</strong>, or <strong>📐 Elev C3</strong> located directly above the canvas or in the workbench tabs.</span>
+              </div>
+              <div class="help-step-item">
+                <span class="help-step-num">2</span>
+                <span>The camera locks into true perpendicular 2D projection against that cable's vertical plane with 0&deg; perspective distortion.</span>
+              </div>
+              <div class="help-step-item">
+                <span class="help-step-num">3</span>
+                <span>The dashed colored line is the <strong>horizontal baseline (0&deg;)</strong>. The vertical plumb line forms a 90&deg; right-angle at the floor.</span>
+              </div>
+              <div class="help-step-item">
+                <span class="help-step-num">4</span>
+                <span>Click <strong>📐 Snap Protractor to Knot</strong>. Rotate the protractor arm to lay directly across the cable to the top anchor ring. Read &theta;<sub>elev</sub> off the protractor scale.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-card">
+            <h3>📏 2. Reading Vernier Spring Scales</h3>
+            <p>Each cable is suspended from an adjustable perimeter stand equipped with a 0–10 N tubular spring scale:</p>
+            <div class="help-step-list">
+              <div class="help-step-item">
+                <span class="help-step-num">1</span>
+                <span>Each numbered graduation represents <strong>1.0 N</strong>; intermediate tick marks represent <strong>0.2 N</strong>.</span>
+              </div>
+              <div class="help-step-item">
+                <span class="help-step-num">2</span>
+                <span>In <strong>Real Lab Mode</strong>, springs obey Hooke's Law and exhibit realistic measurement uncertainty (&plusmn;0.05 N to &plusmn;0.1 N).</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-card">
+            <h3>🧮 3. 3D Statics Equilibrium Math</h3>
+            <p>In 3D static equilibrium, the vector sum of all forces acting on the suspension knot must equal zero:</p>
+            <div class="help-formula-box">
+              &Sigma;F<sub>x</sub> = T<sub>1x</sub> + T<sub>2x</sub> + T<sub>3x</sub> = 0<br>
+              &Sigma;F<sub>y</sub> = T<sub>1</sub>&bull;sin(&theta;<sub>elev1</sub>) + T<sub>2</sub>&bull;sin(&theta;<sub>elev2</sub>) + T<sub>3</sub>&bull;sin(&theta;<sub>elev3</sub>) - mg = 0<br>
+              &Sigma;F<sub>z</sub> = T<sub>1z</sub> + T<sub>2z</sub> + T<sub>3z</sub> = 0
+            </div>
+            <p>Thus, the suspended mass can be determined directly from the three measured tensions and their elevation angles:</p>
+            <div class="help-formula-box">
+              m = [ T₁&bull;sin(&theta;<sub>elev1</sub>) + T₂&bull;sin(&theta;<sub>elev2</sub>) + T₃&bull;sin(&theta;<sub>elev3</sub>) ] / g
+            </div>
+          </div>
+
+          <div class="help-card">
+            <h3>🧪 4. Mystery Mass Challenge</h3>
+            <p>Select the <strong>🧪 2. Mystery Mass Challenge</strong> mode. Measure the three scale tensions and three elevation angles with the protractor. Calculate the unknown mass in grams, enter your estimate, and submit to test your experimental precision!</p>
+          </div>
+
+          <div class="help-card">
+            <h3>🕹️ 5. Controls &amp; Shortcuts</h3>
+            <p><strong>Left Click + Drag:</strong> 3D Orbit &bull; <strong>Right Click + Drag:</strong> Pan &bull; <strong>Scroll:</strong> Zoom &bull; <strong>Reset View:</strong> Default Isometric View.</p>
+          </div>
+        </div>
+      </dialog>
 
     </main>
   </div>
