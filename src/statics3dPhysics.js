@@ -185,22 +185,26 @@
     const sumFz = t1z + t2z + t3z;
 
     // Direction cosines (angles with coordinate axes: α with X, β with Y, γ with Z)
+    // and true elevation angles above horizontal X-Z plane: θ_elev = arcsin(u_y) = 90° - β
     const angles1 = {
       alphaDeg: Math.acos(Math.max(-1, Math.min(1, u1.x))) * (180 / Math.PI),
       betaDeg: Math.acos(Math.max(-1, Math.min(1, u1.y))) * (180 / Math.PI),
-      gammaDeg: Math.acos(Math.max(-1, Math.min(1, u1.z))) * (180 / Math.PI)
+      gammaDeg: Math.acos(Math.max(-1, Math.min(1, u1.z))) * (180 / Math.PI),
+      elevDeg: Math.asin(Math.max(-1, Math.min(1, u1.y))) * (180 / Math.PI)
     };
 
     const angles2 = {
       alphaDeg: Math.acos(Math.max(-1, Math.min(1, u2.x))) * (180 / Math.PI),
       betaDeg: Math.acos(Math.max(-1, Math.min(1, u2.y))) * (180 / Math.PI),
-      gammaDeg: Math.acos(Math.max(-1, Math.min(1, u2.z))) * (180 / Math.PI)
+      gammaDeg: Math.acos(Math.max(-1, Math.min(1, u2.z))) * (180 / Math.PI),
+      elevDeg: Math.asin(Math.max(-1, Math.min(1, u2.y))) * (180 / Math.PI)
     };
 
     const angles3 = {
       alphaDeg: Math.acos(Math.max(-1, Math.min(1, u3.x))) * (180 / Math.PI),
       betaDeg: Math.acos(Math.max(-1, Math.min(1, u3.y))) * (180 / Math.PI),
-      gammaDeg: Math.acos(Math.max(-1, Math.min(1, u3.z))) * (180 / Math.PI)
+      gammaDeg: Math.acos(Math.max(-1, Math.min(1, u3.z))) * (180 / Math.PI),
+      elevDeg: Math.asin(Math.max(-1, Math.min(1, u3.y))) * (180 / Math.PI)
     };
 
     return {
@@ -242,6 +246,18 @@
   }
 
   /**
+   * Reconstructs hanging mass from measured tensions and elevation angles (in degrees).
+   * In 3D: m = (T1·sin(θ_elev1) + T2·sin(θ_elev2) + T3·sin(θ_elev3)) / g
+   */
+  function reconstructMassFromElevation(t1, elevDeg1, t2, elevDeg2, t3, elevDeg3, g = 9.80) {
+    const rad = Math.PI / 180;
+    const u1y = Math.sin(elevDeg1 * rad);
+    const u2y = Math.sin(elevDeg2 * rad);
+    const u3y = Math.sin(elevDeg3 * rad);
+    return reconstructMass(t1, u1y, t2, u2y, t3, u3y, g);
+  }
+
+  /**
    * Evaluates percent error between calculated and actual mass.
    */
   function evaluateError(calcMassG, actualMassG) {
@@ -260,6 +276,7 @@
     det3x3,
     calculateEquilibrium,
     reconstructMass,
+    reconstructMassFromElevation,
     evaluateError
   };
 }));

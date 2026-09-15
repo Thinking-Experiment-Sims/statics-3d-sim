@@ -55,6 +55,7 @@
         chkVectors: document.getElementById('chkVectors'),
         chkBadges: document.getElementById('chkBadges'),
         chkDrops: document.getElementById('chkDrops'),
+        chkElevTriangles: document.getElementById('chkElevTriangles'),
         chkZoomScales: document.getElementById('chkZoomScales'),
         chkCoordsHUD: document.getElementById('chkCoordsHUD'),
         btnResetCam: document.getElementById('btnResetCam'),
@@ -66,6 +67,17 @@
         btnAlignC2: document.getElementById('btnAlignC2'),
         btnAlignC3: document.getElementById('btnAlignC3'),
         btnAlignHoriz: document.getElementById('btnAlignHoriz'),
+        btnMeasureElev1: document.getElementById('btnMeasureElev1'),
+        btnMeasureElev2: document.getElementById('btnMeasureElev2'),
+        btnMeasureElev3: document.getElementById('btnMeasureElev3'),
+
+        // Direction Angles Tab Measure Buttons
+        btnTabElev1: document.getElementById('btnTabElev1'),
+        btnTabElev2: document.getElementById('btnTabElev2'),
+        btnTabElev3: document.getElementById('btnTabElev3'),
+        angA1_elev: document.getElementById('angA1_elev'),
+        angA2_elev: document.getElementById('angA2_elev'),
+        angA3_elev: document.getElementById('angA3_elev'),
 
         // Telemetry
         telemT1: document.getElementById('telemT1'),
@@ -102,6 +114,9 @@
         isRealLabMode: false,
         massKg: 0.500,
         g: 9.80,
+
+        // Active Elevation Cable View (null, 1, 2, or 3)
+        activeElevCable: null,
 
         // 3D Anchor positions on tabletop (in cm)
         anchors: {
@@ -154,6 +169,7 @@
         showVectors: true,
         showBadges: true,
         showDrops: true,
+        showElevTriangles: true,
         showZoomScales: true,
         showCoordsHUD: true,
 
@@ -310,6 +326,26 @@
           this.dom.valKnotSag.textContent = 'Ideal Inextensible Cables';
         }
       }
+
+      // Direction Angles & Elevation Angles Live Telemetry
+      const setAng = (id, deg) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = `${deg.toFixed(1)}°`;
+      };
+      setAng('angA1_elev', eq.angles.angles1.elevDeg);
+      setAng('angA1_alpha', eq.angles.angles1.alphaDeg);
+      setAng('angA1_beta', eq.angles.angles1.betaDeg);
+      setAng('angA1_gamma', eq.angles.angles1.gammaDeg);
+
+      setAng('angA2_elev', eq.angles.angles2.elevDeg);
+      setAng('angA2_alpha', eq.angles.angles2.alphaDeg);
+      setAng('angA2_beta', eq.angles.angles2.betaDeg);
+      setAng('angA2_gamma', eq.angles.angles2.gammaDeg);
+
+      setAng('angA3_elev', eq.angles.angles3.elevDeg);
+      setAng('angA3_alpha', eq.angles.angles3.alphaDeg);
+      setAng('angA3_beta', eq.angles.angles3.betaDeg);
+      setAng('angA3_gamma', eq.angles.angles3.gammaDeg);
     }
 
     triggerEquilibriumSettling(initialAmp = 3) {
@@ -399,29 +435,70 @@
         btn.classList.toggle('active', btn.dataset.cam === preset);
       });
 
+      const eq = this.equilibrium;
+
       if (preset === 'orbit') {
         this.state.camera.yaw = 35 * (Math.PI / 180);
         this.state.camera.pitch = 26 * (Math.PI / 180);
         this.state.camera.distance = 60;
+        this.state.camera.target = { x: 0, y: 15, z: 0 };
+        this.state.activeElevCable = null;
       } else if (preset === 'top') {
         this.state.camera.yaw = 0;
         this.state.camera.pitch = 88 * (Math.PI / 180);
         this.state.camera.distance = 56;
+        this.state.camera.target = { x: 0, y: 15, z: 0 };
+        this.state.activeElevCable = null;
       } else if (preset === 'front') {
         this.state.camera.yaw = 0;
         this.state.camera.pitch = 8 * (Math.PI / 180);
         this.state.camera.distance = 58;
+        this.state.camera.target = { x: 0, y: 15, z: 0 };
+        this.state.activeElevCable = null;
       } else if (preset === 'side') {
         this.state.camera.yaw = 90 * (Math.PI / 180);
         this.state.camera.pitch = 8 * (Math.PI / 180);
         this.state.camera.distance = 58;
+        this.state.camera.target = { x: 0, y: 15, z: 0 };
+        this.state.activeElevCable = null;
+      } else if (preset === 'elev1' || preset === 'elev2' || preset === 'elev3') {
+        const cableNum = parseInt(preset.replace('elev', ''), 10);
+        let anchor = this.state.anchors.a1;
+        if (cableNum === 2) anchor = this.state.anchors.a2;
+        if (cableNum === 3) anchor = this.state.anchors.a3;
+
+        const knot = eq ? eq.knot : this.state.knot;
+        const dx = anchor.x - knot.x;
+        const dz = anchor.z - knot.z;
+
+        // Zero-distortion elevation projection: camera line of sight is perpendicular to cable's vertical plane
+        this.state.camera.yaw = Math.atan2(-dz, dx);
+        this.state.camera.pitch = 0;
+        this.state.camera.distance = 58;
+        this.state.camera.target = { x: 0, y: 15, z: 0 };
+        this.state.activeElevCable = cableNum;
+
+        // Prepare protractor snapped at knot with horizontal baseline (0° reference)
+        this.state.protractor.visible = true;
+        this.state.protractor.rotationDeg = 0;
+        this.state.protractor.isSnapped = true;
+        this.updateProtractorButtonUI();
       }
+
+      // Sync active state on the protractor elevation measurement chips
+      if (this.dom.btnMeasureElev1) this.dom.btnMeasureElev1.classList.toggle('active-c1', preset === 'elev1');
+      if (this.dom.btnMeasureElev2) this.dom.btnMeasureElev2.classList.toggle('active-c2', preset === 'elev2');
+      if (this.dom.btnMeasureElev3) this.dom.btnMeasureElev3.classList.toggle('active-c3', preset === 'elev3');
 
       if (this.state.protractor.isSnapped) {
         this.snapProtractorToKnot();
       }
 
       this.render();
+    }
+
+    measureCableElevation(cableNum) {
+      this.setCameraPreset('elev' + cableNum);
     }
 
     snapProtractorToKnot() {
@@ -567,6 +644,12 @@
           this.render();
         });
       }
+      if (this.dom.chkElevTriangles) {
+        this.dom.chkElevTriangles.addEventListener('change', (e) => {
+          this.state.showElevTriangles = e.target.checked;
+          this.render();
+        });
+      }
       if (this.dom.chkZoomScales) {
         this.dom.chkZoomScales.addEventListener('change', (e) => {
           this.state.showZoomScales = e.target.checked;
@@ -623,6 +706,28 @@
           this.updateProtractorButtonUI();
           this.render();
         });
+      }
+
+      // Measure Elevation Buttons in Protractor Strip
+      if (this.dom.btnMeasureElev1) {
+        this.dom.btnMeasureElev1.addEventListener('click', () => this.measureCableElevation(1));
+      }
+      if (this.dom.btnMeasureElev2) {
+        this.dom.btnMeasureElev2.addEventListener('click', () => this.measureCableElevation(2));
+      }
+      if (this.dom.btnMeasureElev3) {
+        this.dom.btnMeasureElev3.addEventListener('click', () => this.measureCableElevation(3));
+      }
+
+      // Measure Elevation Buttons in Direction Angles Tab
+      if (this.dom.btnTabElev1) {
+        this.dom.btnTabElev1.addEventListener('click', () => this.measureCableElevation(1));
+      }
+      if (this.dom.btnTabElev2) {
+        this.dom.btnTabElev2.addEventListener('click', () => this.measureCableElevation(2));
+      }
+      if (this.dom.btnTabElev3) {
+        this.dom.btnTabElev3.addEventListener('click', () => this.measureCableElevation(3));
       }
 
       // Canvas Mouse / Touch Orbit & Protractor Interaction
@@ -772,7 +877,11 @@
           const maxPitch = 86 * (Math.PI / 180);
           this.state.camera.pitch = Math.max(minPitch, Math.min(maxPitch, this.state.camera.pitch));
 
+          this.state.activeElevCable = null;
           this.dom.camBtns.forEach(btn => btn.classList.remove('active'));
+          if (this.dom.btnMeasureElev1) this.dom.btnMeasureElev1.classList.remove('active-c1');
+          if (this.dom.btnMeasureElev2) this.dom.btnMeasureElev2.classList.remove('active-c2');
+          if (this.dom.btnMeasureElev3) this.dom.btnMeasureElev3.classList.remove('active-c3');
 
           if (this.state.protractor.isSnapped) {
             this.snapProtractorToKnot();
@@ -903,14 +1012,14 @@
 
       setCell('tblFgy', -eq.Fg);
 
-      // Populate input fields with measured/read values
-      if (this.dom.inTheta1) this.dom.inTheta1.value = eq.angles.angles1.betaDeg.toFixed(1);
-      if (this.dom.inTheta2) this.dom.inTheta2.value = eq.angles.angles2.betaDeg.toFixed(1);
-      if (this.dom.inTheta3) this.dom.inTheta3.value = eq.angles.angles3.betaDeg.toFixed(1);
+      // Populate input fields with measured/read elevation angles if empty
+      if (this.dom.inTheta1 && !this.dom.inTheta1.value) this.dom.inTheta1.value = eq.angles.angles1.elevDeg.toFixed(1);
+      if (this.dom.inTheta2 && !this.dom.inTheta2.value) this.dom.inTheta2.value = eq.angles.angles2.elevDeg.toFixed(1);
+      if (this.dom.inTheta3 && !this.dom.inTheta3.value) this.dom.inTheta3.value = eq.angles.angles3.elevDeg.toFixed(1);
 
-      if (this.dom.inForce1) this.dom.inForce1.value = eq.readTensions.t1.toFixed(1);
-      if (this.dom.inForce2) this.dom.inForce2.value = eq.readTensions.t2.toFixed(1);
-      if (this.dom.inForce3) this.dom.inForce3.value = eq.readTensions.t3.toFixed(1);
+      if (this.dom.inForce1 && !this.dom.inForce1.value) this.dom.inForce1.value = eq.readTensions.t1.toFixed(1);
+      if (this.dom.inForce2 && !this.dom.inForce2.value) this.dom.inForce2.value = eq.readTensions.t2.toFixed(1);
+      if (this.dom.inForce3 && !this.dom.inForce3.value) this.dom.inForce3.value = eq.readTensions.t3.toFixed(1);
 
       // Net Force sums
       const sumElX = document.getElementById('tblSumFx');
@@ -921,32 +1030,49 @@
       if (sumElY) sumElY.textContent = `${eq.netForce.sumFy.toFixed(2)} N`;
       if (sumElZ) sumElZ.textContent = `${eq.netForce.sumFz.toFixed(2)} N`;
 
-      // Direction Angles Tab population
+      // Direction Angles & Elevation Angles Tab population
       const setAngle = (id, deg) => {
         const el = document.getElementById(id);
         if (el) el.textContent = `${deg.toFixed(1)}°`;
       };
+      setAngle('angA1_elev', eq.angles.angles1.elevDeg);
       setAngle('angA1_alpha', eq.angles.angles1.alphaDeg);
       setAngle('angA1_beta', eq.angles.angles1.betaDeg);
       setAngle('angA1_gamma', eq.angles.angles1.gammaDeg);
 
+      setAngle('angA2_elev', eq.angles.angles2.elevDeg);
       setAngle('angA2_alpha', eq.angles.angles2.alphaDeg);
       setAngle('angA2_beta', eq.angles.angles2.betaDeg);
       setAngle('angA2_gamma', eq.angles.angles2.gammaDeg);
 
+      setAngle('angA3_elev', eq.angles.angles3.elevDeg);
       setAngle('angA3_alpha', eq.angles.angles3.alphaDeg);
       setAngle('angA3_beta', eq.angles.angles3.betaDeg);
       setAngle('angA3_gamma', eq.angles.angles3.gammaDeg);
 
-      // Reconstructed Mass
-      const recon = Statics3DPhysics.reconstructMass(
-        eq.tensions.t1, eq.unitVectors.u1.y,
-        eq.tensions.t2, eq.unitVectors.u2.y,
-        eq.tensions.t3, eq.unitVectors.u3.y,
+      // Reconstruct Mass using student measured elevation angles:
+      // In physics, vertical component is Ty = T * sin(θ_elev)
+      const inElev1 = parseFloat(this.dom.inTheta1?.value) || eq.angles.angles1.elevDeg;
+      const inElev2 = parseFloat(this.dom.inTheta2?.value) || eq.angles.angles2.elevDeg;
+      const inElev3 = parseFloat(this.dom.inTheta3?.value) || eq.angles.angles3.elevDeg;
+
+      const inT1 = parseFloat(this.dom.inForce1?.value) || eq.tensions.t1;
+      const inT2 = parseFloat(this.dom.inForce2?.value) || eq.tensions.t2;
+      const inT3 = parseFloat(this.dom.inForce3?.value) || eq.tensions.t3;
+
+      const recon = Statics3DPhysics.reconstructMassFromElevation(
+        inT1, inElev1,
+        inT2, inElev2,
+        inT3, inElev3,
         eq.g
       );
       const actualG = eq.massKg * 1000;
       const err = Statics3DPhysics.evaluateError(recon.calcMassG, actualG);
+
+      const rad = Math.PI / 180;
+      const t1y = inT1 * Math.sin(inElev1 * rad);
+      const t2y = inT2 * Math.sin(inElev2 * rad);
+      const t3y = inT3 * Math.sin(inElev3 * rad);
 
       if (this.dom.workbenchResults) {
         this.dom.workbenchResults.innerHTML = `
@@ -955,7 +1081,8 @@
               ✅ 3D Equilibrium Solution Summary
             </div>
             <div style="font-size: 0.78rem; color: var(--ink);">
-              Vertical Equilibrium: &Sigma;F<sub>y</sub> = (${eq.components.t1y.toFixed(2)} + ${eq.components.t2y.toFixed(2)} + ${eq.components.t3y.toFixed(2)}) N = <strong>${eq.Fg.toFixed(2)} N</strong><br>
+              Vertical Equilibrium from Elevation Angles: <code>&Sigma;F<sub>y</sub> = T₁·sin(&theta;<sub>elev1</sub>) + T₂·sin(&theta;<sub>elev2</sub>) + T₃·sin(&theta;<sub>elev3</sub>)</code><br>
+              &Sigma;F<sub>y</sub> = (${t1y.toFixed(2)} + ${t2y.toFixed(2)} + ${t3y.toFixed(2)}) N = <strong>${recon.totalFy.toFixed(2)} N</strong> (Gravity: ${eq.Fg.toFixed(2)} N)<br>
               Reconstructed Mass: <code>m = &Sigma;F<sub>y</sub> / g</code> = <strong>${recon.calcMassG.toFixed(1)} g</strong> (Actual: ${actualG.toFixed(1)} g, Error: ${err.percentError.toFixed(2)}%)
             </div>
           </div>
@@ -1112,6 +1239,29 @@
                 }
               });
             }
+          }
+
+          // 3D Elevation Right Triangles & Reference Guides
+          if (this.state.showElevTriangles) {
+            const cables = [
+              { a: eq.anchors.a1, id: 1, color: '#0f7e9b', elevDeg: eq.angles.angles1.elevDeg },
+              { a: eq.anchors.a2, id: 2, color: '#d67b19', elevDeg: eq.angles.angles2.elevDeg },
+              { a: eq.anchors.a3, id: 3, color: '#1b8a5a', elevDeg: eq.angles.angles3.elevDeg }
+            ];
+
+            cables.forEach(cb => {
+              const isActive = this.state.activeElevCable === cb.id;
+              if (this.state.activeElevCable === null || isActive) {
+                const pClamp = this.project3D(cb.a, w, h);
+                const pFloorFoot = this.project3D({ x: cb.a.x, y: eq.knot.y, z: cb.a.z }, w, h);
+                if (pClamp && pFloorFoot) {
+                  renderQueue.push({
+                    depth: (pKnot.depth + pClamp.depth) / 2 + 1,
+                    draw: () => this.drawElevationTriangle(ctx, pKnot, pClamp, pFloorFoot, cb.color, cb.id, cb.elevDeg, isActive)
+                  });
+                }
+              }
+            });
           }
 
           // Cables & Spring Scales
@@ -1887,6 +2037,123 @@
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 8.5px Inter, sans-serif';
       ctx.fillText('PROTRACTOR', 0, -r - 10);
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 3D Elevation Right Triangle & Inclinometer Reference Guide
+    // =========================================================================
+    drawElevationTriangle(ctx, pKnot, pClamp, pFloorFoot, color, id, elevDeg, isActive) {
+      ctx.save();
+
+      // 1. Shaded translucent wedge fill
+      ctx.fillStyle = isActive ? 'rgba(15, 126, 155, 0.12)' : 'rgba(15, 126, 155, 0.04)';
+      ctx.beginPath();
+      ctx.moveTo(pKnot.x, pKnot.y);
+      ctx.lineTo(pFloorFoot.x, pFloorFoot.y);
+      ctx.lineTo(pClamp.x, pClamp.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // 2. Horizontal Run Reference Baseline (from knot to foot beneath anchor in horizontal plane)
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isActive ? 2.0 : 1.2;
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath();
+      ctx.moveTo(pKnot.x, pKnot.y);
+      ctx.lineTo(pFloorFoot.x, pFloorFoot.y);
+      ctx.stroke();
+
+      // 3. Vertical Plumb Drop Line (from foot to anchor clamp)
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = isActive ? 1.8 : 1.0;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(pFloorFoot.x, pFloorFoot.y);
+      ctx.lineTo(pClamp.x, pClamp.y);
+      ctx.stroke();
+
+      // 4. Right Angle Square at floor foot
+      const legH_dx = pKnot.x - pFloorFoot.x;
+      const legH_dy = pKnot.y - pFloorFoot.y;
+      const legH_len = Math.hypot(legH_dx, legH_dy);
+
+      const legV_dx = pClamp.x - pFloorFoot.x;
+      const legV_dy = pClamp.y - pFloorFoot.y;
+      const legV_len = Math.hypot(legV_dx, legV_dy);
+
+      if (legH_len > 12 && legV_len > 12) {
+        const sqSize = 9;
+        const uHx = (legH_dx / legH_len) * sqSize;
+        const uHy = (legH_dy / legH_len) * sqSize;
+        const uVx = (legV_dx / legV_len) * sqSize;
+        const uVy = (legV_dy / legV_len) * sqSize;
+
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(pFloorFoot.x + uHx, pFloorFoot.y + uHy);
+        ctx.lineTo(pFloorFoot.x + uHx + uVx, pFloorFoot.y + uHy + uVy);
+        ctx.lineTo(pFloorFoot.x + uVx, pFloorFoot.y + uVy);
+        ctx.stroke();
+      }
+
+      // 5. Elevation Arc at Knot
+      const angH = Math.atan2(pFloorFoot.y - pKnot.y, pFloorFoot.x - pKnot.x);
+      const angC = Math.atan2(pClamp.y - pKnot.y, pClamp.x - pKnot.x);
+
+      const arcRadius = isActive ? 48 : 34;
+      ctx.setLineDash([]);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isActive ? 2.2 : 1.4;
+
+      ctx.beginPath();
+      let diff = angC - angH;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      const counterClockwise = diff < 0;
+      ctx.arc(pKnot.x, pKnot.y, arcRadius, angH, angC, counterClockwise);
+      ctx.stroke();
+
+      // 6. Label Badge for θ_elev
+      const midAngle = angH + diff / 2;
+      const labelDist = arcRadius + 18;
+      const badgeX = pKnot.x + Math.cos(midAngle) * labelDist;
+      const badgeY = pKnot.y + Math.sin(midAngle) * labelDist;
+
+      const text = `θ_elev${id}: ${elevDeg.toFixed(1)}°`;
+      ctx.font = 'bold 9.5px Inter, sans-serif';
+      const textW = ctx.measureText(text).width;
+      const padX = 5;
+      const padY = 3;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      drawRoundedRect(ctx, badgeX - textW / 2 - padX, badgeY - 7 - padY, textW + padX * 2, 14 + padY * 2, 4, true, true);
+
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, badgeX, badgeY);
+
+      // 7. If in elevation view, draw horizontal 0° reference baseline line
+      if (isActive) {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = 'rgba(15, 126, 155, 0.6)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(pKnot.x - 70, pKnot.y);
+        ctx.lineTo(pKnot.x + 240, pKnot.y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#0a576b';
+        ctx.font = 'bold 8.5px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('0° Horizontal Baseline', pKnot.x + 115, pKnot.y + 13);
+      }
 
       ctx.restore();
     }

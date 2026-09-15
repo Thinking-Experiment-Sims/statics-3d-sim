@@ -129,6 +129,10 @@
             <button class="cam-btn" data-cam="top" title="Top Down View (X-Z plane)">📐 Top (X-Z)</button>
             <button class="cam-btn" data-cam="front" title="Front Elevation (X-Y plane)">📏 Front (X-Y)</button>
             <button class="cam-btn" data-cam="side" title="Side Elevation (Z-Y plane)">🔍 Side (Z-Y)</button>
+            <span class="cam-bar-sep" aria-hidden="true"></span>
+            <button class="cam-btn" data-cam="elev1" title="Cable 1 Elevation Profile (Zero-Distortion)">📐 Elev C1</button>
+            <button class="cam-btn" data-cam="elev2" title="Cable 2 Elevation Profile (Zero-Distortion)">📐 Elev C2</button>
+            <button class="cam-btn" data-cam="elev3" title="Cable 3 Elevation Profile (Zero-Distortion)">📐 Elev C3</button>
           </div>
 
           <div class="viewport-hint">
@@ -159,6 +163,10 @@
               <input type="checkbox" id="chkDrops" checked>
               <span>Drop Line</span>
             </label>
+            <label class="toggle-label" title="Show 3D elevation right triangles (horizontal baseline, vertical plumb drop Δy, and θ_elev arc)">
+              <input type="checkbox" id="chkElevTriangles" checked>
+              <span>📐 Elev Triangles</span>
+            </label>
             <label class="toggle-label" title="Show vertical zoomed-in spring scale graduations for accurate reading">
               <input type="checkbox" id="chkZoomScales" checked>
               <span>🔍 Zoomed Scales</span>
@@ -175,20 +183,26 @@
 
         <!-- Protractor Measurement Strip -->
         <div class="protractor-controls-bar">
-          <div style="display: flex; align-items: center; gap: 0.35rem;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
             <button type="button" class="btn btn-ghost btn-xs" id="btnToggleProtractor">
               📐 Protractor (Off)
             </button>
             <button type="button" class="btn btn-ghost btn-xs" id="btnSnapProtractor" title="Snap protractor origin directly to the knot vertex">
               🎯 Snap to Knot
             </button>
+            <button type="button" class="preset-chip" id="btnAlignHoriz" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor horizontally (0° reference baseline)">0° Horiz</button>
           </div>
           <div class="protractor-align-group">
-            <span style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">Align Baseline:</span>
-            <button type="button" class="preset-chip" id="btnAlignC1" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor with Cable 1">Cable 1</button>
-            <button type="button" class="preset-chip" id="btnAlignC2" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor with Cable 2">Cable 2</button>
-            <button type="button" class="preset-chip" id="btnAlignC3" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor with Cable 3">Cable 3</button>
-            <button type="button" class="preset-chip" id="btnAlignHoriz" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align horizontally (0 deg)">0° Horiz</button>
+            <span style="font-size: 0.70rem; color: var(--muted); font-weight: 700;">Top Azimuth:</span>
+            <button type="button" class="preset-chip" id="btnAlignC1" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor baseline with Cable 1">C1</button>
+            <button type="button" class="preset-chip" id="btnAlignC2" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor baseline with Cable 2">C2</button>
+            <button type="button" class="preset-chip" id="btnAlignC3" style="padding: 0.12rem 0.38rem; font-size: 0.68rem;" title="Align protractor baseline with Cable 3">C3</button>
+          </div>
+          <div class="protractor-elevation-group">
+            <span style="font-size: 0.70rem; color: var(--primary-teal); font-weight: 700;">Measure &theta;<sub>elev</sub>:</span>
+            <button type="button" class="preset-chip" id="btnMeasureElev1" style="padding: 0.12rem 0.38rem; font-size: 0.68rem; color: var(--primary-teal); font-weight: 700;" title="View &amp; measure Cable 1 elevation angle">Elev C1</button>
+            <button type="button" class="preset-chip" id="btnMeasureElev2" style="padding: 0.12rem 0.38rem; font-size: 0.68rem; color: var(--accent-amber); font-weight: 700;" title="View &amp; measure Cable 2 elevation angle">Elev C2</button>
+            <button type="button" class="preset-chip" id="btnMeasureElev3" style="padding: 0.12rem 0.38rem; font-size: 0.68rem; color: #1b8a5a; font-weight: 700;" title="View &amp; measure Cable 3 elevation angle">Elev C3</button>
           </div>
         </div>
 
@@ -285,8 +299,8 @@
                       <div class="force-title"><strong>Tension 1 (<em>T</em><sub>1</sub>)</strong></div>
                       <div class="inline-measure-group">
                         <div class="measure-sub">
-                          <span>&theta;₁:</span>
-                          <input type="number" class="table-input" id="inTheta1" placeholder="Angle °" step="0.5">
+                          <span title="Elevation angle above horizontal X-Z plane">&theta;<sub>elev1</sub>:</span>
+                          <input type="number" class="table-input" id="inTheta1" placeholder="Elev °" step="0.5">
                         </div>
                         <div class="measure-sub">
                           <span>T₁:</span>
@@ -314,8 +328,8 @@
                       <div class="force-title"><strong>Tension 2 (<em>T</em><sub>2</sub>)</strong></div>
                       <div class="inline-measure-group">
                         <div class="measure-sub">
-                          <span>&theta;₂:</span>
-                          <input type="number" class="table-input" id="inTheta2" placeholder="Angle °" step="0.5">
+                          <span title="Elevation angle above horizontal X-Z plane">&theta;<sub>elev2</sub>:</span>
+                          <input type="number" class="table-input" id="inTheta2" placeholder="Elev °" step="0.5">
                         </div>
                         <div class="measure-sub">
                           <span>T₂:</span>
@@ -343,8 +357,8 @@
                       <div class="force-title"><strong>Tension 3 (<em>T</em><sub>3</sub>)</strong></div>
                       <div class="inline-measure-group">
                         <div class="measure-sub">
-                          <span>&theta;₃:</span>
-                          <input type="number" class="table-input" id="inTheta3" placeholder="Angle °" step="0.5">
+                          <span title="Elevation angle above horizontal X-Z plane">&theta;<sub>elev3</sub>:</span>
+                          <input type="number" class="table-input" id="inTheta3" placeholder="Elev °" step="0.5">
                         </div>
                         <div class="measure-sub">
                           <span>T₃:</span>
@@ -401,32 +415,44 @@
           </div>
         </div>
 
-        <!-- TAB 2: 3D Direction Angles & Cosines -->
+        <!-- TAB 2: 3D Direction Angles & Elevation Angles -->
         <div class="analysis-tab-pane" id="tab-angles">
           <div class="math-card" style="margin-top: 0.4rem;">
-            <strong style="color: var(--primary-teal-dark);">3D Direction Angles &amp; Direction Cosines</strong>
+            <strong style="color: var(--primary-teal-dark);">3D Direction Angles &amp; Elevation Angles</strong>
             <p style="font-size: 0.76rem; color: var(--muted); margin: 0.3rem 0 0.6rem;">
-              In 3D vector statics, direction angles (&alpha;, &beta;, &gamma;) measure the angle between the cable force vector and the three Cartesian axes (+X, +Y, +Z):
-              <code>u<sub>x</sub> = cos(&alpha;)</code>, <code>u<sub>y</sub> = cos(&beta;)</code>, <code>u<sub>z</sub> = cos(&gamma;)</code>.
+              In 3D vector statics, direction angles (&alpha;, &beta;, &gamma;) measure angles to Cartesian axes: <code>u<sub>x</sub> = cos(&alpha;)</code>, <code>u<sub>y</sub> = cos(&beta;) = sin(&theta;<sub>elev</sub>)</code>, <code>u<sub>z</sub> = cos(&gamma;)</code>.<br>
+              <strong>Elevation angle &theta;<sub>elev</sub>:</strong> Angle above the horizontal X-Z plane: <code>&theta;<sub>elev</sub> = 90° - &beta; = arcsin(u<sub>y</sub>)</code>.
             </p>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
               <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; text-align: center;">
                 <div style="font-weight: 700; color: var(--primary-teal); font-size: 0.82rem;">Cable 1 (T₁)</div>
+                <div style="background: var(--primary-teal-light); border-radius: 4px; padding: 0.2rem; margin: 0.3rem 0; font-size: 0.78rem; color: var(--primary-teal-dark); font-weight: 800;">
+                  &theta;<sub>elev</sub>: <span id="angA1_elev">-</span>
+                </div>
                 <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">&alpha; (X): <strong id="angA1_alpha">-</strong></div>
                 <div style="font-size: 0.72rem; color: var(--muted);">&beta; (Y): <strong id="angA1_beta">-</strong></div>
                 <div style="font-size: 0.72rem; color: var(--muted);">&gamma; (Z): <strong id="angA1_gamma">-</strong></div>
+                <button type="button" class="btn btn-ghost btn-xs" id="btnTabElev1" style="margin-top: 0.35rem; width: 100%; font-size: 0.68rem; color: var(--primary-teal); border: 1px solid var(--primary-teal-border);" title="Switch to Cable 1 Elevation View &amp; measure">📐 Measure C1</button>
               </div>
               <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; text-align: center;">
                 <div style="font-weight: 700; color: var(--accent-amber); font-size: 0.82rem;">Cable 2 (T₂)</div>
+                <div style="background: var(--accent-amber-light); border-radius: 4px; padding: 0.2rem; margin: 0.3rem 0; font-size: 0.78rem; color: var(--accent-amber-dark); font-weight: 800;">
+                  &theta;<sub>elev</sub>: <span id="angA2_elev">-</span>
+                </div>
                 <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">&alpha; (X): <strong id="angA2_alpha">-</strong></div>
                 <div style="font-size: 0.72rem; color: var(--muted);">&beta; (Y): <strong id="angA2_beta">-</strong></div>
                 <div style="font-size: 0.72rem; color: var(--muted);">&gamma; (Z): <strong id="angA2_gamma">-</strong></div>
+                <button type="button" class="btn btn-ghost btn-xs" id="btnTabElev2" style="margin-top: 0.35rem; width: 100%; font-size: 0.68rem; color: var(--accent-amber-dark); border: 1px solid var(--accent-amber-border);" title="Switch to Cable 2 Elevation View &amp; measure">📐 Measure C2</button>
               </div>
               <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; text-align: center;">
                 <div style="font-weight: 700; color: #1b8a5a; font-size: 0.82rem;">Cable 3 (T₃)</div>
+                <div style="background: #e6f6ee; border-radius: 4px; padding: 0.2rem; margin: 0.3rem 0; font-size: 0.78rem; color: #156d47; font-weight: 800;">
+                  &theta;<sub>elev</sub>: <span id="angA3_elev">-</span>
+                </div>
                 <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">&alpha; (X): <strong id="angA3_alpha">-</strong></div>
                 <div style="font-size: 0.72rem; color: var(--muted);">&beta; (Y): <strong id="angA3_beta">-</strong></div>
                 <div style="font-size: 0.72rem; color: var(--muted);">&gamma; (Z): <strong id="angA3_gamma">-</strong></div>
+                <button type="button" class="btn btn-ghost btn-xs" id="btnTabElev3" style="margin-top: 0.35rem; width: 100%; font-size: 0.68rem; color: #1b8a5a; border: 1px solid #9ad6ba;" title="Switch to Cable 3 Elevation View &amp; measure">📐 Measure C3</button>
               </div>
             </div>
           </div>

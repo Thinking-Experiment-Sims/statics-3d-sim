@@ -26,22 +26,26 @@ $$\hat{u}_i = \frac{\Delta \vec{r}_i}{L_i} = \left\langle \frac{x_i - x_k}{L_i},
 
 ## 🚀 Key Features
 
-- **360° Lightweight 3D Canvas Orbit Engine:**
-  - Orbit, pan, and zoom around the apparatus using pure Canvas 2D perspective projection with zero external dependencies (no Three.js or WebGL needed).
-  - Quick camera presets: `3D Orbit`, `Top (X-Z)` (overhead), `Front (X-Y)` (front elevation), `Side (Z-Y)` (side profile).
+- **360° Lightweight 3D Canvas Orbit Engine & Elevation Views:**
+  - Orbit, pan, and zoom around the apparatus using pure Canvas 2D perspective projection with zero external dependencies.
+  - Camera presets: `3D Orbit`, `Top (X-Z)` (overhead), `Front (X-Y)`, `Side (Z-Y)`, and dedicated distortion-free cable elevation views: `📐 Elev C1`, `📐 Elev C2`, `📐 Elev C3`.
+- **True 3D Elevation Angle Measurement (`📐 Elev Triangles` & Protractor):**
+  - Side-profile views ($\text{pitch} = 0^\circ, \text{yaw} = \operatorname{atan2}(-\Delta z, \Delta x)$) align each cable's vertical plane parallel to the viewport, eliminating perspective foreshortening.
+  - Interactive elevation right-triangles show horizontal baseline run ($\Delta r_{xz}$), vertical plumb drop ($\Delta y$), right-angle bracket, and $\theta_{\text{elev}}$ degree arc.
+  - The virtual dual-scale protractor automatically snaps to the knot with a $0^\circ$ horizontal reference baseline so students can directly read the true elevation angle off the protractor's graduations (e.g. $35.7^\circ$).
 - **Three Vertical Zoomed Scales (`🔍 Zoomed Scales`):**
   - High-resolution Vernier spring scale panels displaying $0 \to 10\text{ N}$ with $0.2\text{ N}$ graduations, helical coils, and live red indicators for millimeter-precision reading.
 - **AP Physics C 3D Coordinates & Angles HUD (`📏 3D Coords HUD`):**
   - Live metric telemetry displaying knot coordinates $(x_k, y_k, z_k)$, displacement vectors $\Delta \vec{r}$, cable lengths $L_i$, and true elevation angles $\theta_{\text{elev}} = \arcsin(\Delta y_i / L_i)$.
 - **Virtual Dual-Scale Protractor:**
   - Teal Outer Scale ($0^\circ \to 180^\circ$) and Amber Inner Scale ($180^\circ \to 0^\circ$).
-  - Instant knot snapping and cable alignment presets.
+  - Instant knot snapping, top-view cable azimuth alignment, and horizontal elevation baseline presets.
 - **Real Lab Mode vs. Ideal Physics:**
   - Switch between ideal analytical equilibrium and realistic experimental conditions with spring sag and measurement uncertainty ($\pm 0.05\text{ N}$).
 - **Mystery Mass Challenge:**
   - Mystery weights ($A, B, C, D$) where students measure 3D cable directions and spring scale deflections to calculate the unknown mass.
 - **4-Column 3D Force Resolution Workbench:**
-  - Students enter measured angles and tensions to calculate $F_x, F_y, F_z$ components and verify $\Sigma F = 0$.
+  - Students enter measured elevation angles ($\theta_{\text{elev}}$) and tensions to calculate $F_x, F_y, F_z$ components and verify $\Sigma F = 0$ via $\sum T_i \sin(\theta_{\text{elev}, i}) = mg$.
 
 ---
 

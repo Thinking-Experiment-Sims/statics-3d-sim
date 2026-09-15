@@ -436,7 +436,8 @@ body {
   flex-wrap: wrap;
 }
 
-.protractor-align-group {
+.protractor-align-group,
+.protractor-elevation-group {
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -456,19 +457,48 @@ body {
   border-color: var(--primary-teal-dark);
 }
 
+.preset-chip.active-c1 {
+  background: var(--primary-teal);
+  color: #ffffff;
+  border-color: var(--primary-teal-dark);
+}
+
+.preset-chip.active-c2 {
+  background: var(--accent-amber);
+  color: #ffffff;
+  border-color: var(--accent-amber-dark);
+}
+
+.preset-chip.active-c3 {
+  background: #1b8a5a;
+  color: #ffffff;
+  border-color: #156d47;
+}
+
 /* Camera & 3D Tools Overlay */
 .camera-controls-bar {
   position: absolute;
   top: 10px;
   right: 10px;
   display: flex;
+  align-items: center;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(4px);
-  padding: 3px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  padding: 3px 6px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.cam-bar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 3px;
+  display: inline-block;
 }
 
 .cam-btn {

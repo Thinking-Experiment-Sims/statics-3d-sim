@@ -111,4 +111,36 @@ describe('3D Statics Physics Engine Tests', () => {
     assert.ok(heavyRes.knot.y < lightRes.knot.y, 'Knot height must decrease (sag downward) when mass increases');
     assert.ok(heavyRes.elasticSagY > lightRes.elasticSagY, 'Elastic sag must be greater for heavier mass');
   });
+
+  it('Elevation Angles: θ_elev = 90° - β and mass reconstruction from elevation angles', () => {
+    const a1 = { x: 22, y: 30, z: 12 };
+    const a2 = { x: -22, y: 30, z: 12 };
+    const a3 = { x: 0, y: 30, z: -24 };
+    const knot = { x: 0, y: 12, z: 0 };
+    const massKg = 0.500;
+    const g = 9.80;
+
+    const res = Statics3DPhysics.calculateEquilibrium(knot, a1, a2, a3, massKg, g, false);
+
+    // Verify θ_elev = 90° - β
+    assert.ok(Math.abs(res.angles.angles1.elevDeg + res.angles.angles1.betaDeg - 90) < 1e-5);
+    assert.ok(Math.abs(res.angles.angles2.elevDeg + res.angles.angles2.betaDeg - 90) < 1e-5);
+    assert.ok(Math.abs(res.angles.angles3.elevDeg + res.angles.angles3.betaDeg - 90) < 1e-5);
+
+    // Verify exact expected elevation angles for apparatus geometry
+    // C1 & C2: Δy = 18 cm, r_xz = hypot(22, 12) = 25.0599 cm => atan(18 / 25.0599) = 35.6888°
+    assert.ok(Math.abs(res.angles.angles1.elevDeg - 35.6888) < 1e-3);
+    assert.ok(Math.abs(res.angles.angles2.elevDeg - 35.6888) < 1e-3);
+    // C3: Δy = 18 cm, r_xz = 24 cm => atan(18 / 24) = 36.8698°
+    assert.ok(Math.abs(res.angles.angles3.elevDeg - 36.8699) < 1e-3);
+
+    // Reconstruct mass from elevation angles directly:
+    const recon = Statics3DPhysics.reconstructMassFromElevation(
+      res.tensions.t1, res.angles.angles1.elevDeg,
+      res.tensions.t2, res.angles.angles2.elevDeg,
+      res.tensions.t3, res.angles.angles3.elevDeg,
+      g
+    );
+    assert.ok(Math.abs(recon.calcMassKg - massKg) < 1e-5, 'Mass reconstructed from θ_elev must match actual mass');
+  });
 });
